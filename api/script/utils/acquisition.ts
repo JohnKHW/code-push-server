@@ -121,6 +121,10 @@ function getUpdatePackage(packageHistory: Package[], request: UpdateCheckRequest
     updateDetails.packageSize = latestSatisfyingEnabledPackage.size;
   }
 
+  // replace http://127.0.0.1:1000 to process.env.CUSTOM_STORAGE_URL if it exists
+  if (process.env.CUSTOM_STORAGE_URL) {
+    updateDetails.downloadURL = updateDetails.downloadURL.replace("http://127.0.0.1:10000", process.env.CUSTOM_STORAGE_URL);
+  }
   updateDetails.description = latestSatisfyingEnabledPackage.description;
   updateDetails.isMandatory = shouldMakeUpdateMandatory || latestSatisfyingEnabledPackage.isMandatory;
   updateDetails.isAvailable = true;

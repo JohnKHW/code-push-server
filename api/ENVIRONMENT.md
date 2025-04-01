@@ -13,6 +13,9 @@ For convenience, we will also load the server environment from any '.env' file i
 To emulate Azure Blob Storage locally. Azurite needs to be installed and running, more info [here](README.md#local).
 - `EMULATED`: Set to 'true' in order to use the local emulator instead of a hosted instance
 
+- `CUSTOM_STORAGE_URL`: Set to your public server URL (e.g., https://your-server.com) to replace the default 127.0.0.1:10000 URLs in download links when using local Azure storage emulation. This is necessary for client devices to access update packages.
+
+
 #### Azure
 - `AZURE_STORAGE_ACCOUNT`: The name of your hosted Azure storage instance
 - `AZURE_STORAGE_ACCESS_KEY`: The key to your Azure storage instance (if KeyVault credentials are not provided)

@@ -14,6 +14,8 @@ The CodePush Server requires Azure Blob Storage to operate. For the local setup,
 Please follow Azurite [official documentation](https://learn.microsoft.com/en-us/azure/storage/common/storage-use-azurite) to [install](https://learn.microsoft.com/en-us/azure/storage/common/storage-use-azurite?tabs=visual-studio#install-azurite) and [run](https://learn.microsoft.com/en-us/azure/storage/common/storage-use-azurite?tabs=visual-studio#running-azurite-from-the-command-line) it locally.
 Additionally, you need to specify [EMULATED](ENVIRONMENT.md#emulated) flag equals true in the environmental variables.
 
+> Note: When using Azurite locally, the generated download URLs may contain 127.0.0.1 which may not be accessible from client devices. You can set CUSTOM_STORAGE_URL environment variable to replace this with your publicly accessible URL.
+
 #### Steps
 To run the CodePush Server locally, follow these steps:
 
@@ -96,6 +98,16 @@ in `Info.plist` file, add following lines, replacing `server-url` with your serv
 <key>CodePushServerURL</key>
 <string>server-url</string>
 ```
+
+### Environment Variables
+#### Storage URL Configuration
+When using local emulated storage with Azurite, the blob URLs will contain 127.0.0.1:10000, which won't be accessible from external devices. To fix this:
+```
+CUSTOM_STORAGE_URL=https://your-server-hostname.com
+```
+
+This will replace http://127.0.0.1:10000 with your custom URL in all download links, allowing clients to access update packages.
+For all other environment variables, please refer to the [ENVIRONMENT.md](./ENVIRONMENT.md)  file.
 
 ## OAuth apps
 
