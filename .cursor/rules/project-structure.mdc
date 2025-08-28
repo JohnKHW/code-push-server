@@ -1,0 +1,49 @@
+---
+alwaysApply: true
+---
+### CodePush Server Project Structure (API + CLI)
+
+- **API**: Express 應用位於 `api/`
+  - 入口點: [`api/script/server.ts`](mdc:api/script/server.ts) → 啟動 [`api/script/default-server.ts`](mdc:api/script/default-server.ts)
+  - 路由裝載: [`api/script/api.ts`](mdc:api/script/api.ts)
+    - `headers()` → CORS 與通用標頭
+    - `health()` → 健康檢查
+    - `acquisition()` → 用戶端更新檢查/回報
+    - `management()` → 應用/部署/發佈管理
+    - `PassportAuthentication` → Bearer 與 OAuth 流程
+  - 路由實作: `api/script/routes/`
+    - 取得更新/回報: [`acquisition.ts`](mdc:api/script/routes/acquisition.ts)
+    - 管理端 API: [`management.ts`](mdc:api/script/routes/management.ts)
+    - 驗證與登入: [`passport-authentication.ts`](mdc:api/script/routes/passport-authentication.ts)
+    - CORS 標頭: [`headers.ts`](mdc:api/script/routes/headers.ts)
+  - 儲存層: `api/script/storage/`（抽象介面 + 具體實作）
+    - JSON（本地開發）: [`json-storage.ts`](mdc:api/script/storage/json-storage.ts)
+    - Azure（雲端）: [`azure-storage.ts`](mdc:api/script/storage/azure-storage.ts)
+    - 共用型別: [`storage.ts`](mdc:api/script/storage/storage.ts)
+  - Redis 快取: [`api/script/redis-manager.ts`](mdc:api/script/redis-manager.ts)
+  - 公用工具: `api/script/utils/`（雜湊、差異、驗證、錯誤處理等）
+  - EJS 檢視: `api/script/views/`（登入/Access Key 展示頁）
+
+- **CLI**: 位於 `cli/`
+  - 主 SDK: [`cli/script/management-sdk.ts`](mdc:cli/script/management-sdk.ts)（`AccountManager` 對應管理端 API）
+  - 取得更新 SDK: [`cli/script/acquisition-sdk.ts`](mdc:cli/script/acquisition-sdk.ts)
+  - 匯出入口: [`cli/script/index.ts`](mdc:cli/script/index.ts)
+  - 已編譯 JS: `cli/bin/script/`
+
+### Bootstrapping & Middleware
+- 啟動流程於 [`server.ts`](mdc:api/script/server.ts) 呼叫 [`default-server.ts`](mdc:api/script/default-server.ts)
+- 預設中介層：`body-parser`、錯誤處理、App Insights、CORS、Health、Acquisition、Management（可由環境變數切換）
+
+### Key Environment Variables
+- **CORS_ORIGIN**: 允許的來源清單（逗號分隔），由 `headers()` 使用
+- **HTTPS**: 啟用 HTTPS（需 `./certs/cert.key` 與 `./certs/cert.crt`）
+- **API_PORT / PORT**: 監聽連接埠
+- **DISABLE_ACQUISITION / DISABLE_MANAGEMENT**: 關閉對應路由
+- **LOG_INVALID_JSON_REQUESTS**: 紀錄無效 JSON
+- **ENABLE_ACCOUNT_REGISTRATION**: 是否允許帳號註冊/連結
+- **SERVER_URL**: OAuth 回調所需（`/auth/callback/*`）
+- **OAuth**: `GITHUB_CLIENT_ID/SECRET`, `MICROSOFT_CLIENT_ID/SECRET`, `MICROSOFT_TENANT_ID`
+
+### Concepts
+- Acquisition 與 Management 明確分離：前者面向 App 用戶端 SDK，後者面向維運/後台與 CLI。
+- 發佈流程在 Management 上執行，成功後會雜湊封包、更新儲存、並清除快取以確保 Acquisition 端可正確取得新版本。

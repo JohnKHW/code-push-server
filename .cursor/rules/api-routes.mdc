@@ -1,0 +1,61 @@
+---
+globs: api/script/**/*.ts
+description: CodePush REST API routes and payloads
+---
+### Management API (authenticated with Bearer)
+- **Account**
+  - `GET /account`
+- **Access Keys & Sessions**
+  - `GET /accessKeys`
+  - `POST /accessKeys`
+  - `GET /accessKeys/:accessKeyName`
+  - `PATCH /accessKeys/:accessKeyName`
+  - `DELETE /accessKeys/:accessKeyName`
+  - `DELETE /sessions/:createdBy`
+- **Apps**
+  - `GET /apps`
+  - `POST /apps`
+  - `GET /apps/:appName`
+  - `PATCH /apps/:appName` (rename)
+  - `DELETE /apps/:appName`
+  - `POST /apps/:appName/transfer/:email`
+  - `POST /apps/:appName/collaborators/:email`
+  - `GET /apps/:appName/collaborators`
+  - `DELETE /apps/:appName/collaborators/:email`
+- **Deployments**
+  - `GET /apps/:appName/deployments`
+  - `POST /apps/:appName/deployments`
+  - `GET /apps/:appName/deployments/:deploymentName`
+  - `PATCH /apps/:appName/deployments/:deploymentName` (rename)
+  - `DELETE /apps/:appName/deployments/:deploymentName`
+  - `GET /apps/:appName/deployments/:deploymentName/history`
+  - `DELETE /apps/:appName/deployments/:deploymentName/history` (clear)
+  - `GET /apps/:appName/deployments/:deploymentName/metrics`
+  - `POST /apps/:appName/deployments/:deploymentName/release` (multipart)
+  - `PATCH /apps/:appName/deployments/:deploymentName/release` (update metadata/rollout)
+  - `POST /apps/:appName/deployments/:source/promote/:destination`
+  - `POST /apps/:appName/deployments/:deploymentName/rollback/:target?`
+
+### Acquisition API (public)
+- `GET /health`
+- `GET /updateCheck`
+- `POST /reportStatus/deploy`
+- `POST /reportStatus/download`
+- 與相容路徑（`/v0.1/public/codepush/*`）對應
+
+### Release Payloads
+- `POST /.../release` expects `multipart/form-data` with:
+  - `package`: 檔案（ZIP 或單檔）欄位名必須是 `package`
+  - `packageInfo`: JSON 字串欄位，至少需包含 `appVersion`，可含 `description`, `isMandatory`, `rollout` 等
+- `PATCH /.../release` expects JSON body:
+  - `{ "packageInfo": { label?, description?, isMandatory?, isDisabled?, rollout?, appVersion? } }`
+
+### Important Behaviors
+- 發佈將計算 `packageHash`（ZIP 以檔案清單 Manifest 為準，單檔以整體檔案雜湊）
+- 如與相同 `appVersion` 的最新版本 `packageHash` 相同，會回傳 409 Conflict
+- 漸進發布（rollout）若未完成且未停用，不得再發佈新包
+- `release` 有速率限制：每 IP 15 分鐘 100 次
+
+### References
+- Management 路由: [`management.ts`](mdc:api/script/routes/management.ts)
+- Acquisition 路由: [`acquisition.ts`](mdc:api/script/routes/acquisition.ts)

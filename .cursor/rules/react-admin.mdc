@@ -1,0 +1,62 @@
+---
+globs: *.tsx,*.ts,*.jsx,*.js
+description: Build a React admin to manage apps, deployments and releases
+---
+### Goal
+以 React 建立管理後台（Web）來操作 Management API（Bearer 驗證）。
+
+### Pages & Actions
+- **Auth**: 讓使用者貼上 Access Key（或導向後端 OAuth 產生），儲存於安全儲存（例如 session/local storage）
+- **Apps**:
+  - 列表/建立/重新命名/刪除
+  - 轉移擁有者、協作者管理
+- **Deployments**:
+  - 列表/建立/重新命名/刪除
+  - 歷史與 Metrics 檢視
+  - 發佈（上傳封包）、更新（PATCH release）、Promote、Rollback
+
+### Networking
+- Base URL：後端 `SERVER_URL`（例如 `http://localhost:3000`）
+- 共用標頭：
+  - `Authorization: Bearer <accessKey>`
+  - `Accept: application/vnd.code-push.v2+json`
+- 上傳發佈（multipart/form-data）：
+  - `package`：檔案欄位名稱必須是 `package`
+  - `packageInfo`：JSON 字串，包含至少 `appVersion`，可含 `description`, `isMandatory`, `rollout`
+
+```ts
+// POST release
+const form = new FormData();
+form.append("package", file);
+form.append("packageInfo", JSON.stringify({ appVersion, description, isMandatory, rollout }));
+
+await fetch(`${serverUrl}/apps/${encodeURIComponent(app)}/deployments/${encodeURIComponent(dep)}/release`, {
+  method: "POST",
+  headers: { Authorization: `Bearer ${accessKey}`, Accept: "application/vnd.code-push.v2+json" },
+  body: form,
+});
+
+// PATCH release (update rollout/metadata)
+await fetch(`${serverUrl}/apps/${encodeURIComponent(app)}/deployments/${encodeURIComponent(dep)}/release`, {
+  method: "PATCH",
+  headers: {
+    "Content-Type": "application/json;charset=UTF-8",
+    Authorization: `Bearer ${accessKey}`,
+    Accept: "application/vnd.code-push.v2+json",
+  },
+  body: JSON.stringify({ packageInfo: { label, rollout, description, isMandatory, isDisabled, appVersion } }),
+});
+```
+
+### CORS & Preflight
+- 設定 `CORS_ORIGIN` 包含前端網址
+- 更新 [`headers.ts`](mdc:api/script/routes/headers.ts) 的 `Access-Control-Allow-Methods` 以包含 `PATCH`，否則瀏覽器的預檢請求會被擋下
+
+### Error Handling
+- 401：Access Key 無效或過期 → 引導重新登入/更新 Key
+- 409：衝突（相同 `packageHash`、rollout 邏輯衝突）→ 顯示明確訊息並提示操作
+- 404：資源不存在（app/deployment/label）→ 更新 UI 狀態/重整列表
+
+### References
+- 路由與發佈行為：[`management.ts`](mdc:api/script/routes/management.ts)
+- CLI 參考請求格式：[`management-sdk.ts`](mdc:cli/script/management-sdk.ts)

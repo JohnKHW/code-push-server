@@ -1,0 +1,243 @@
+---
+globs: *.ts,*.tsx,*.jsx,*.js
+description: Frontend tech stack (React TS CSR, Chakra UI, Tailwind, Axios, Moment, Lodash)
+---
+
+### Frontend Tech Stack & Conventions
+
+- **Framework**: React 20 + TypeScript（僅 CSR，無 SSR）
+- **UI Library**: Chakra UI（完整組件庫和設計系統）
+- **Styles**: Tailwind CSS v4（實用優先），與 Chakra UI 主題同步
+- **HTTP**: Axios（集中化 instance + 攔截器 + 錯誤處理）
+- **Datetime**: Moment（統一解析/格式化/相對時間）
+- **Utilities**: Lodash（僅按需匯入避免膨脹）
+- **可讀風格**: 清爽、層次分明（skyblue 主色、足夠留白、對比明確）
+
+### Theme
+
+- **Primary Color**: skyblue `#87CEEB`
+- Tailwind：將 `primary` 指向 skyblue；也可直接使用 `sky-*` 調色盤
+- Chakra UI：設定 `theme.colors.primary = '#87CEEB'` 和 brand 色彩
+
+```ts
+// App root（例如 src/main.tsx）
+import { ChakraProvider } from "@chakra-ui/react";
+import { extendTheme } from "@chakra-ui/react";
+
+const theme = extendTheme({
+  colors: {
+    primary: {
+      50: "#EAF7FE",
+      100: "#D5EEFD",
+      200: "#ABE0FB",
+      300: "#81D2F9",
+      400: "#57C4F7",
+      500: "#87CEEB", // main primary color
+      600: "#1C95CD",
+      700: "#15729C",
+      800: "#0D4E6A",
+      900: "#062B39",
+    },
+    brand: {
+      50: "#EAF7FE",
+      100: "#D5EEFD",
+      200: "#ABE0FB",
+      300: "#81D2F9",
+      400: "#57C4F7",
+      500: "#87CEEB",
+      600: "#1C95CD",
+      700: "#15729C",
+      800: "#0D4E6A",
+      900: "#062B39",
+    },
+  },
+});
+
+<ChakraProvider theme={theme}>
+  <App />
+</ChakraProvider>;
+```
+
+### Tailwind Setup
+
+- 在 `tailwind.config.js` 擴充主題與掃描範圍
+
+```js
+// tailwind.config.js
+module.exports = {
+  content: ["./index.html", "./src/**/*.{ts,tsx,js,jsx}"],
+  theme: {
+    extend: {
+      colors: {
+        primary: {
+          DEFAULT: "#87CEEB",
+          50: "#EAF7FE",
+          100: "#D5EEFD",
+          200: "#ABE0FB",
+          300: "#81D2F9",
+          400: "#57C4F7",
+          500: "#2DB6F5",
+          600: "#1C95CD",
+          700: "#15729C",
+          800: "#0D4E6A",
+          900: "#062B39",
+        },
+      },
+    },
+  },
+  plugins: [],
+};
+```
+
+```css
+/* src/index.css */
+@import "tailwindcss";
+```
+
+### Axios
+
+- 建立集中化 instance，設定 `baseURL`、標頭、攔截器（含 Authorization 與 Accept）
+
+```ts
+// src/api/http.ts
+import axios from "axios";
+
+export const http = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:3000",
+  headers: {
+    Accept: "application/vnd.code-push.v2+json",
+  },
+  withCredentials: true,
+});
+
+http.interceptors.request.use((config) => {
+  const token = localStorage.getItem("accessKey");
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+http.interceptors.response.use(
+  (res) => res,
+  (error) => {
+    // 可集中處理 401/409/5xx 等
+    return Promise.reject(error);
+  }
+);
+```
+
+### Moment（Datetime）
+
+- 全站採用 Moment 做格式化/相對時間顯示；避免混用其他日期函式庫
+
+```ts
+import moment from "moment";
+
+export const formatDateTime = (value?: string | number | Date) =>
+  value ? moment(value).format("YYYY-MM-DD HH:mm:ss") : "-";
+
+export const fromNow = (value?: string | number | Date) =>
+  value ? moment(value).fromNow() : "-";
+```
+
+### Lodash（按需匯入）
+
+- 僅引入使用到的函式以利 Tree-Shaking
+
+```ts
+import debounce from "lodash/debounce";
+import pick from "lodash/pick";
+```
+
+### UI & Layout（清爽展示要求）
+
+- 以 Chakra UI 元件為主，Tailwind 輔助空間與排版：
+  - 版面：`Container maxW="7xl" mx="auto" px={4}`
+  - 間距：`Stack spacing={4}`, `gap={4}`
+  - 對比：標題/主按鈕使用 `colorScheme="brand"` / `color="primary.600"`
+- 載入狀態：Chakra UI `Skeleton` / `Spinner`
+- 空狀態：自訂 `EmptyState` 組件
+- 表單：Chakra UI `FormControl` + `useToast` 統一反饋樣式
+
+### Chakra UI Component Patterns
+
+#### 常用組件對照
+
+- **Layout**: `Box`, `Container`, `Stack`, `Grid`, `Flex`
+- **Typography**: `Heading`, `Text`
+- **Forms**: `FormControl`, `Input`, `Button`, `Select`
+- **Feedback**: `useToast`, `Alert`, `Skeleton`, `Spinner`
+- **Navigation**: `Breadcrumb`, `Link`
+- **Data Display**: `Table`, `Tag`, `Badge`
+- **Overlay**: `Modal`, `Popover`, `Menu`
+
+#### 響應式設計
+
+```ts
+// 使用 Chakra UI 響應式語法
+<Box
+  display={{ base: "block", md: "flex" }}
+  p={{ base: 4, md: 6, lg: 8 }}
+>
+```
+
+#### 色彩使用
+
+```ts
+// 使用主題色彩
+<Button colorScheme="brand" />
+<Text color="primary.600" />
+<Box bg="primary.50" />
+```
+
+### Patterns
+
+- 僅使用函式型元件 + Hooks
+- 拆分 pages（容器）與 components（展示）
+- API 呼叫集中到 `src/api/*`，頁面透過 hooks 使用（如 `useQuery` 可視需要引入）
+- 日期/數字/字串處理統一放於 `src/utils/*`
+- 使用 Chakra UI 的 `useToast`, `useDisclosure` 等 hooks
+
+### Dependencies（建議）
+
+- `react`, `react-dom`, `typescript`
+- `@chakra-ui/react`, `@emotion/react`, `@emotion/styled`, `framer-motion`
+- `@chakra-ui/icons`
+- `tailwindcss`, `postcss`, `autoprefixer`
+- `axios`
+- `moment`
+- `lodash`
+
+### Toast and Notifications
+
+```ts
+// 使用 Chakra UI Toast
+import { useToast } from "@chakra-ui/react";
+
+const toast = useToast();
+
+toast({
+  title: "Success",
+  description: "Operation completed successfully",
+  status: "success",
+  duration: 3000,
+  isClosable: true,
+});
+```
+
+### Form Handling
+
+```ts
+// 使用 Chakra UI 表單組件
+<FormControl isRequired isInvalid={isError}>
+  <FormLabel>Field Name</FormLabel>
+  <Input value={value} onChange={handleChange} />
+  <FormErrorMessage>Error message</FormErrorMessage>
+</FormControl>
+```
+
+### Notes
+
+- 若前端從瀏覽器呼叫 `PATCH` 端點，請確保後端 CORS 已允許 `PATCH`，並將前端網址加入 `CORS_ORIGIN`。
+- Chakra UI 自帶主題系統，但可與 Tailwind 配合使用
+- 優先使用 Chakra UI 組件，Tailwind 用於細節調整
+- 使用 Chakra UI 的響應式屬性而非 Tailwind 的響應式類名

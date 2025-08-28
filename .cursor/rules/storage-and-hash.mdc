@@ -1,0 +1,28 @@
+---
+globs: api/script/storage/*.ts,api/script/utils/*.ts
+description: Storage implementations, caching, hashing and diffing behavior
+---
+### Storage
+- 介面與型別: [`storage.ts`](mdc:api/script/storage/storage.ts)
+- 實作：
+  - JSON 開發用: [`json-storage.ts`](mdc:api/script/storage/json-storage.ts)
+  - Azure 雲端: [`azure-storage.ts`](mdc:api/script/storage/azure-storage.ts)
+
+### Caching (Redis)
+- 管理於 [`redis-manager.ts`](mdc:api/script/redis-manager.ts)
+- Acquisition 路由使用快取，以 `deploymentKey` 與 URL 為鍵
+- 發佈/修改套件後會清除對應快取，避免用戶端拿到舊內容
+
+### Hashing & Manifests
+- 封包雜湊：[`hash-utils.ts`](mdc:api/script/utils/hash-utils.ts)
+  - ZIP：產生 Manifest 後以檔案清單計算 `packageHash`
+  - 單檔：以整體檔案內容計算雜湊
+- 差異計算與封裝：[`package-diffing.ts`](mdc:api/script/utils/package-diffing.ts)
+  - 受 `DIFF_PACKAGE_COUNT` 影響（預設 5）
+
+### Rollout Rules
+- 若現有發佈為進行中的漸進（rollout 未完成）且未停用，將拒絕新的發佈
+- `PATCH /.../release` 可更新 `rollout`, `isMandatory`, `isDisabled`, `description`, `appVersion`；完成 100% 時 `rollout` 會被清空（視為完成）
+
+### References
+- 發佈與驗證流程：[`management.ts`](mdc:api/script/routes/management.ts)

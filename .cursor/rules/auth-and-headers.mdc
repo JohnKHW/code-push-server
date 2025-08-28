@@ -1,0 +1,29 @@
+---
+globs: api/script/routes/*.ts
+description: Authentication (Bearer/OAuth) and CORS headers
+---
+### Authentication
+- Management API 以 **Bearer Access Key** 驗證：`Authorization: Bearer <accessKey>`
+- 驗證端點：`GET /authenticated`（回傳 `{ authenticated: true }`）
+- Access Key 由 OAuth 登入流程在伺服器端簽發（顯示於 `views/accesskey.ejs`）
+- OAuth 供應商（啟用需 `SERVER_URL` 與對應 Client ID/Secret）：
+  - GitHub、Microsoft、Azure AD；路由位於 [`passport-authentication.ts`](mdc:api/script/routes/passport-authentication.ts)
+
+### CORS/Headers
+- 中介層：[`headers.ts`](mdc:api/script/routes/headers.ts)
+  - 來源: 由 `CORS_ORIGIN` 逗號分隔清單控制
+  - Allow-Credentials: `true`
+  - Expose-Headers: `Location`
+  - Allow-Headers: `Content-Type, X-CodePush-Plugin-Name, X-CodePush-Plugin-Version, X-CodePush-SDK-Version`
+  - Allow-Methods: `GET, POST, DELETE, PUT`（注意：如需從瀏覽器呼叫 `PATCH`，請將 `PATCH` 一併加入）
+  - `OPTIONS` 預檢請求直接回 204
+
+### Rate Limiting
+- `release` 與 `auth/*` 路徑套用速率限制（每 IP 15 分鐘 100 次）
+
+### Client Headers
+- 建議加上：`Accept: application/vnd.code-push.v2+json`
+- CLI 另會加入：`X-CodePush-SDK-Version`
+
+### Notes for React Frontend
+- 如需從 React（瀏覽器）直接呼叫 `PATCH` 端點（例如更新 rollout/metadata），請務必更新 `Allow-Methods` 以包含 `PATCH`，並將前端網址加入 `CORS_ORIGIN` 清單。

@@ -1,0 +1,46 @@
+---
+globs: cli/script/**/*.ts
+description: CLI AccountManager methods mapped to Management API endpoints
+---
+### AccountManager → Management API
+- `isAuthenticated()` → `GET /authenticated`
+- `addAccessKey()` → `POST /accessKeys`
+- `getAccessKey()` → `GET /accessKeys/:accessKeyName`
+- `getAccessKeys()` → `GET /accessKeys`
+- `getSessions()` → 由 `GET /accessKeys` 組裝
+- `patchAccessKey()` → `PATCH /accessKeys/:accessKeyName`
+- `removeAccessKey()` → `DELETE /accessKeys/:accessKeyName`
+- `removeSession()` → `DELETE /sessions/:createdBy`
+- `getAccountInfo()` → `GET /account`
+- `getApps()` → `GET /apps`
+- `getApp()` → `GET /apps/:appName`
+- `addApp()` → `POST /apps`
+- `removeApp()` → `DELETE /apps/:appName`
+- `renameApp()` → `PATCH /apps/:appName`
+- `transferApp()` → `POST /apps/:appName/transfer/:email`
+- `getCollaborators()` → `GET /apps/:appName/collaborators`
+- `addCollaborator()` → `POST /apps/:appName/collaborators/:email`
+- `removeCollaborator()` → `DELETE /apps/:appName/collaborators/:email`
+- `addDeployment()` → `POST /apps/:appName/deployments`
+- `getDeployments()` → `GET /apps/:appName/deployments`
+- `getDeployment()` → `GET /apps/:appName/deployments/:deploymentName`
+- `renameDeployment()` → `PATCH /apps/:appName/deployments/:deploymentName`
+- `removeDeployment()` → `DELETE /apps/:appName/deployments/:deploymentName`
+- `getDeploymentMetrics()` → `GET /apps/:appName/deployments/:deploymentName/metrics`
+- `getDeploymentHistory()` → `GET /apps/:appName/deployments/:deploymentName/history`
+- `release()` → `POST /apps/:appName/deployments/:deploymentName/release`（multipart：`package` + `packageInfo`）
+- `patchRelease()` → `PATCH /apps/:appName/deployments/:deploymentName/release`
+- `promote()` → `POST /apps/:appName/deployments/:source/promote/:destination`
+- `rollback()` → `POST /apps/:appName/deployments/:deploymentName/rollback/:target?`
+
+### Request Headers (set by CLI)
+- `Authorization: Bearer <accessKey>`
+- `Accept: application/vnd.code-push.v2+json`
+- `X-CodePush-SDK-Version: <package.json version>`
+
+### Upload Details
+- 目錄會由 CLI 打包為 ZIP（`yazl`），透過 field 名稱 `package` 附上
+- `packageInfo` 以 JSON 字串作為第二個 multipart 欄位送出
+
+### References
+- 管理 SDK：[`management-sdk.ts`](mdc:cli/script/management-sdk.ts)
