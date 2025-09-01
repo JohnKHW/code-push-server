@@ -56,6 +56,7 @@ import {
   AttachmentIcon,
   TimeIcon,
   RepeatIcon,
+  CopyIcon,
 } from "@chakra-ui/icons";
 import { FiUsers, FiArrowUp } from "react-icons/fi";
 import { useNavigate, useParams } from "react-router-dom";
@@ -597,6 +598,36 @@ export const DeploymentsPage = () => {
     }
   };
 
+  const handleCopyDeploymentKey = async (deploymentKey: string, deploymentName: string) => {
+    try {
+      await navigator.clipboard.writeText(deploymentKey);
+      toast({
+        title: "Deployment key copied!",
+        description: `Key for "${deploymentName}" copied to clipboard`,
+        status: "success",
+        duration: 2000,
+        isClosable: true,
+      });
+    } catch (error) {
+      // Fallback for older browsers
+      console.warn("Clipboard API not available, using fallback:", error);
+      const textArea = document.createElement("textarea");
+      textArea.value = deploymentKey;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
+      
+      toast({
+        title: "Deployment key copied!",
+        description: `Key for "${deploymentName}" copied to clipboard`,
+        status: "success",
+        duration: 2000,
+        isClosable: true,
+      });
+    }
+  };
+
   return (
     <VStack spacing={6} align="stretch">
       <HStack justify="space-between">
@@ -695,6 +726,34 @@ export const DeploymentsPage = () => {
                                 Latest: {latestRelease.label}
                               </Tag>
                             )}
+                        </HStack>
+
+                        {/* Deployment Key Section */}
+                        <HStack spacing={2} align="center">
+                          <Text fontSize="sm" color="gray.600" fontWeight="medium">
+                            Deployment Key:
+                          </Text>
+                          <Text 
+                            fontSize="sm" 
+                            fontFamily="mono" 
+                            color="gray.700"
+                            bg="gray.100"
+                            px={2}
+                            py={1}
+                            rounded="md"
+                            maxW="200px"
+                            isTruncated
+                          >
+                            {deployment.key}
+                          </Text>
+                          <IconButton
+                            aria-label="Copy deployment key"
+                            icon={<CopyIcon />}
+                            size="sm"
+                            variant="ghost"
+                            colorScheme="brand"
+                            onClick={() => handleCopyDeploymentKey(deployment.key, deployment.name)}
+                          />
                         </HStack>
 
                         {currentPackage || latestRelease ? (

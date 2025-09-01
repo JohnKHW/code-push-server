@@ -1,17 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Box,
   VStack,
   HStack,
   Heading,
   Button,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  TableContainer,
   Modal,
   ModalOverlay,
   ModalContent,
@@ -35,6 +28,16 @@ import {
   AlertDialogContent,
   AlertDialogOverlay,
   Badge,
+  Accordion,
+  AccordionItem,
+  AccordionButton,
+  AccordionPanel,
+  AccordionIcon,
+  Card,
+  CardBody,
+  Grid,
+  Spacer,
+  Tag,
 } from "@chakra-ui/react";
 import { AddIcon, EditIcon, DeleteIcon, ViewIcon } from "@chakra-ui/icons";
 import { useNavigate } from "react-router-dom";
@@ -47,6 +50,85 @@ interface App {
   collaborators?: Record<string, unknown>;
   deployments?: string[];
 }
+
+interface AppGroup {
+  baseName: string;
+  apps: Array<App & { platform: string; displayName: string }>;
+}
+
+// 解析應用程式名稱，提取基礎名稱和平台
+const parseAppName = (appName: string) => {
+  // 常見的分隔符：-, _, 空格
+  const separators = ['-', '_', ' '];
+  const platforms = ['ios', 'android', 'web', 'windows', 'macos', 'linux'];
+  
+  let baseName = appName;
+  let platform = 'other';
+  
+  for (const separator of separators) {
+    const parts = appName.toLowerCase().split(separator);
+    if (parts.length > 1) {
+      const lastPart = parts[parts.length - 1];
+      if (platforms.includes(lastPart)) {
+        platform = lastPart;
+        // 保持原始大小寫的基礎名稱
+        const lowerCaseAppName = appName.toLowerCase();
+        const separatorIndex = lowerCaseAppName.lastIndexOf(separator + lastPart);
+        baseName = appName.substring(0, separatorIndex);
+        break;
+      }
+    }
+  }
+  
+  return { baseName, platform };
+};
+
+// 將應用程式按基礎名稱分組
+const groupAppsByBaseName = (apps: App[]): AppGroup[] => {
+  const groups: Record<string, AppGroup> = {};
+  
+  apps.forEach(app => {
+    const { baseName, platform } = parseAppName(app.name);
+    
+    if (!groups[baseName]) {
+      groups[baseName] = {
+        baseName,
+        apps: []
+      };
+    }
+    
+    groups[baseName].apps.push({
+      ...app,
+      platform,
+      displayName: app.name
+    });
+  });
+  
+  // 排序：先按基礎名稱，再按平台
+  Object.values(groups).forEach(group => {
+    group.apps.sort((a, b) => {
+      const platformOrder = ['ios', 'android', 'web', 'windows', 'macos', 'linux', 'other'];
+      return platformOrder.indexOf(a.platform) - platformOrder.indexOf(b.platform);
+    });
+  });
+  
+  return Object.values(groups).sort((a, b) => a.baseName.localeCompare(b.baseName));
+};
+
+// 獲取平台對應的顏色和顯示名稱
+const getPlatformInfo = (platform: string) => {
+  const platformMap: Record<string, { color: string; displayName: string }> = {
+    ios: { color: 'blue', displayName: 'iOS' },
+    android: { color: 'green', displayName: 'Android' },
+    web: { color: 'purple', displayName: 'Web' },
+    windows: { color: 'cyan', displayName: 'Windows' },
+    macos: { color: 'gray', displayName: 'macOS' },
+    linux: { color: 'orange', displayName: 'Linux' },
+    other: { color: 'gray', displayName: 'Other' }
+  };
+  
+  return platformMap[platform] || platformMap.other;
+};
 
 export const AppsPage = () => {
   const [apps, setApps] = useState<App[]>([]);
@@ -64,7 +146,7 @@ export const AppsPage = () => {
   const toast = useToast();
   const cancelRef = useRef<HTMLButtonElement>(null);
 
-  const fetchApps = async () => {
+  const fetchApps = useCallback(async () => {
     try {
       setLoading(true);
       console.log("Fetching apps from API...");
@@ -118,11 +200,11 @@ export const AppsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     fetchApps();
-  }, []);
+  }, [fetchApps]);
 
   const handleCreateApp = () => {
     setEditingApp(null);
@@ -256,42 +338,47 @@ export const AppsPage = () => {
             </VStack>
           </Center>
         ) : (
-          <TableContainer>
-            <Table variant="simple">
-              <Thead>
-                <Tr>
-                  <Th>Application Name</Th>
-                  <Th>Deployments</Th>
-                  <Th>Collaborators</Th>
-                  <Th>Actions</Th>
-                </Tr>
-              </Thead>
-              <Tbody>
-                {apps.map((app) => (
-                  <Tr key={app.name}>
-                    <Td>
-                      <HStack>
-                        <ViewIcon color="primary.500" />
-                        <Text fontWeight="semibold">{app.name}</Text>
-                      </HStack>
-                    </Td>
-                    <Td>
-                      <Badge colorScheme="blue">
-                        {app.deployments?.length || 0}
-                      </Badge>
-                    </Td>
-                    <Td>
-                      <Badge colorScheme="green">
-                        {Object.keys(app.collaborators || {}).length}
-                      </Badge>
-                    </Td>
-                    <Td>
+          <VStack spacing={4}>
+            {groupAppsByBaseName(apps).map((group) => (
+              <Card key={group.baseName} w="100%">
+                <CardBody>
+                  {group.apps.length === 1 ? (
+                    // 單一應用程式，直接顯示
+                    <Grid templateColumns="1fr auto" gap={4} alignItems="center">
+                      <VStack align="start" spacing={2}>
+                        <HStack>
+                          <ViewIcon color="primary.500" />
+                          <Text fontSize="lg" fontWeight="bold">
+                            {group.apps[0].displayName}
+                          </Text>
+                          <Tag 
+                            colorScheme={getPlatformInfo(group.apps[0].platform).color} 
+                            size="sm"
+                          >
+                            {getPlatformInfo(group.apps[0].platform).displayName}
+                          </Tag>
+                        </HStack>
+                        <HStack spacing={4}>
+                          <HStack>
+                            <Text fontSize="sm" color="gray.600">Deployments:</Text>
+                            <Badge colorScheme="blue">
+                              {group.apps[0].deployments?.length || 0}
+                            </Badge>
+                          </HStack>
+                          <HStack>
+                            <Text fontSize="sm" color="gray.600">Collaborators:</Text>
+                            <Badge colorScheme="green">
+                              {Object.keys(group.apps[0].collaborators || {}).length}
+                            </Badge>
+                          </HStack>
+                        </HStack>
+                      </VStack>
                       <HStack spacing={2}>
                         <Button
                           size="sm"
                           colorScheme="brand"
                           leftIcon={<ViewIcon />}
-                          onClick={() => handleViewDeployments(app.name)}
+                          onClick={() => handleViewDeployments(group.apps[0].name)}
                         >
                           Deployments
                         </Button>
@@ -300,7 +387,7 @@ export const AppsPage = () => {
                           icon={<EditIcon />}
                           size="sm"
                           variant="outline"
-                          onClick={() => handleEditApp(app)}
+                          onClick={() => handleEditApp(group.apps[0])}
                         />
                         <IconButton
                           aria-label="Delete app"
@@ -308,15 +395,109 @@ export const AppsPage = () => {
                           size="sm"
                           colorScheme="red"
                           variant="outline"
-                          onClick={() => handleDeleteApp(app.name)}
+                          onClick={() => handleDeleteApp(group.apps[0].name)}
                         />
                       </HStack>
-                    </Td>
-                  </Tr>
-                ))}
-              </Tbody>
-            </Table>
-          </TableContainer>
+                    </Grid>
+                  ) : (
+                    // 多個應用程式，使用可摺疊介面
+                    <Accordion allowToggle>
+                      <AccordionItem border="none">
+                        <AccordionButton px={0} _hover={{ bg: "transparent" }}>
+                          <HStack flex="1">
+                            <ViewIcon color="primary.500" />
+                            <Text fontSize="lg" fontWeight="bold">
+                              {group.baseName}
+                            </Text>
+                            <HStack spacing={1}>
+                              {group.apps.map((app) => (
+                                <Tag 
+                                  key={app.name}
+                                  colorScheme={getPlatformInfo(app.platform).color} 
+                                  size="sm"
+                                >
+                                  {getPlatformInfo(app.platform).displayName}
+                                </Tag>
+                              ))}
+                            </HStack>
+                            <Spacer />
+                            <Text fontSize="sm" color="gray.500">
+                              {group.apps.length} platforms
+                            </Text>
+                          </HStack>
+                          <AccordionIcon />
+                        </AccordionButton>
+                        <AccordionPanel px={0} pt={4}>
+                          <VStack spacing={3}>
+                            {group.apps.map((app) => (
+                              <Card key={app.name} size="sm" w="100%" bg="gray.50">
+                                <CardBody>
+                                  <Grid templateColumns="1fr auto" gap={4} alignItems="center">
+                                    <VStack align="start" spacing={1}>
+                                      <HStack>
+                                        <Text fontWeight="semibold">
+                                          {app.displayName}
+                                        </Text>
+                                        <Tag 
+                                          colorScheme={getPlatformInfo(app.platform).color} 
+                                          size="sm"
+                                        >
+                                          {getPlatformInfo(app.platform).displayName}
+                                        </Tag>
+                                      </HStack>
+                                      <HStack spacing={4}>
+                                        <HStack>
+                                          <Text fontSize="sm" color="gray.600">Deployments:</Text>
+                                          <Badge colorScheme="blue" size="sm">
+                                            {app.deployments?.length || 0}
+                                          </Badge>
+                                        </HStack>
+                                        <HStack>
+                                          <Text fontSize="sm" color="gray.600">Collaborators:</Text>
+                                          <Badge colorScheme="green" size="sm">
+                                            {Object.keys(app.collaborators || {}).length}
+                                          </Badge>
+                                        </HStack>
+                                      </HStack>
+                                    </VStack>
+                                    <HStack spacing={2}>
+                                      <Button
+                                        size="sm"
+                                        colorScheme="brand"
+                                        leftIcon={<ViewIcon />}
+                                        onClick={() => handleViewDeployments(app.name)}
+                                      >
+                                        Deployments
+                                      </Button>
+                                      <IconButton
+                                        aria-label="Edit app"
+                                        icon={<EditIcon />}
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => handleEditApp(app)}
+                                      />
+                                      <IconButton
+                                        aria-label="Delete app"
+                                        icon={<DeleteIcon />}
+                                        size="sm"
+                                        colorScheme="red"
+                                        variant="outline"
+                                        onClick={() => handleDeleteApp(app.name)}
+                                      />
+                                    </HStack>
+                                  </Grid>
+                                </CardBody>
+                              </Card>
+                            ))}
+                          </VStack>
+                        </AccordionPanel>
+                      </AccordionItem>
+                    </Accordion>
+                  )}
+                </CardBody>
+              </Card>
+            ))}
+          </VStack>
         )}
       </Box>
 
