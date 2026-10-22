@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Box,
   VStack,
@@ -47,7 +47,7 @@ import {
   Grid,
   Flex,
   Spacer,
-} from "@chakra-ui/react";
+} from '@chakra-ui/react';
 import {
   AddIcon,
   EditIcon,
@@ -57,12 +57,12 @@ import {
   TimeIcon,
   RepeatIcon,
   CopyIcon,
-} from "@chakra-ui/icons";
-import { FiUsers, FiArrowUp } from "react-icons/fi";
-import { useNavigate, useParams } from "react-router-dom";
-import { http } from "../api/http";
-import { formatDateTime, fromNow } from "../utils/datetime";
-import { CollaboratorsManager } from "../components/CollaboratorsManager";
+} from '@chakra-ui/icons';
+import { FiUsers, FiArrowUp } from 'react-icons/fi';
+import { useNavigate, useParams } from 'react-router-dom';
+import { http } from '../api/http';
+import { formatDateTime, fromNow } from '../utils/datetime';
+import { CollaboratorsManager } from '../components/CollaboratorsManager';
 
 interface Deployment {
   name: string;
@@ -93,8 +93,6 @@ interface DeploymentResponse {
     package?: unknown;
   };
 }
-
-
 
 interface ApiError {
   response?: {
@@ -134,26 +132,24 @@ export const DeploymentsPage = () => {
   } = useDisclosure();
 
   const [editingDeployment, setEditingDeployment] = useState<Deployment | null>(
-    null
+    null,
   );
-  const [selectedDeployment, setSelectedDeployment] = useState<string>("");
-  const [deletingDeployment, setDeletingDeployment] = useState<string>("");
-  const [deploymentName, setDeploymentName] = useState("");
+  const [selectedDeployment, setSelectedDeployment] = useState<string>('');
+  const [deletingDeployment, setDeletingDeployment] = useState<string>('');
+  const [deploymentName, setDeploymentName] = useState('');
 
   // Release form state
   const [releaseData, setReleaseData] = useState({
-    appVersion: "",
-    description: "",
+    appVersion: '',
+    description: '',
     rollout: 100,
     isMandatory: false,
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-
-
   // Promote form state
-  const [promoteFromDeployment, setPromoteFromDeployment] = useState("");
-  const [promoteToDeployment, setPromoteToDeployment] = useState("");
+  const [promoteFromDeployment, setPromoteFromDeployment] = useState('');
+  const [promoteToDeployment, setPromoteToDeployment] = useState('');
 
   const navigate = useNavigate();
   const toast = useToast();
@@ -167,10 +163,10 @@ export const DeploymentsPage = () => {
       setLoading(true);
       console.log(`Fetching deployments for app: ${appName}`);
       const response = await http.get(
-        `/apps/${encodeURIComponent(appName)}/deployments`
+        `/apps/${encodeURIComponent(appName)}/deployments`,
       );
-      console.log("Deployments API Response:", response);
-      console.log("Deployments data:", response.data);
+      console.log('Deployments API Response:', response);
+      console.log('Deployments data:', response.data);
 
       // 處理 API 響應格式 - 後端返回 { deployments: Deployment[] }
       let deploymentsData: Deployment[] = [];
@@ -178,31 +174,31 @@ export const DeploymentsPage = () => {
       if (response.data) {
         // 檢查是否是標準的 { deployments: [] } 格式
         if (
-          "deployments" in response.data &&
+          'deployments' in response.data &&
           Array.isArray(response.data.deployments)
         ) {
           deploymentsData = response.data.deployments.map(
             (deployment: Record<string, unknown>) => ({
-              name: (deployment.name as string) || "",
+              name: (deployment.name as string) || '',
               key:
-                (deployment.key as string) || (deployment.name as string) || "",
+                (deployment.key as string) || (deployment.name as string) || '',
               package: deployment.package,
-            })
+            }),
           );
         } else if (Array.isArray(response.data)) {
           // 兼容直接返回數組的情況
           deploymentsData = response.data.map(
             (deployment: Record<string, unknown>) => ({
-              name: (deployment.name as string) || "",
+              name: (deployment.name as string) || '',
               key:
-                (deployment.key as string) || (deployment.name as string) || "",
+                (deployment.key as string) || (deployment.name as string) || '',
               package: deployment.package,
-            })
+            }),
           );
-        } else if (typeof response.data === "object") {
+        } else if (typeof response.data === 'object') {
           // 兼容對象格式
           deploymentsData = Object.entries(
-            response.data as DeploymentResponse
+            response.data as DeploymentResponse,
           ).map(([deploymentName, deploymentDetails]) => ({
             name: deploymentName,
             key: deploymentDetails?.key || deploymentName,
@@ -211,13 +207,13 @@ export const DeploymentsPage = () => {
         }
       }
 
-      console.log("Processed deployments data:", deploymentsData);
+      console.log('Processed deployments data:', deploymentsData);
 
       // 調試：查看每個部署的 package 內容
       deploymentsData.forEach((deployment) => {
         console.log(
           `Deployment ${deployment.name} package:`,
-          deployment.package
+          deployment.package,
         );
       });
 
@@ -230,8 +226,8 @@ export const DeploymentsPage = () => {
           console.log(`Fetching history for deployment: ${deployment.name}`);
           const historyResponse = await http.get(
             `/apps/${encodeURIComponent(
-              appName
-            )}/deployments/${encodeURIComponent(deployment.name)}/history`
+              appName,
+            )}/deployments/${encodeURIComponent(deployment.name)}/history`,
           );
           console.log(`History for ${deployment.name}:`, historyResponse.data);
 
@@ -240,30 +236,30 @@ export const DeploymentsPage = () => {
 
           if (historyResponse.data) {
             if (
-              "history" in historyResponse.data &&
+              'history' in historyResponse.data &&
               Array.isArray(historyResponse.data.history)
             ) {
               // 標準格式：{ history: Package[] }
               console.log(
                 `Found history array for ${deployment.name}:`,
-                historyResponse.data.history
+                historyResponse.data.history,
               );
               historyData = historyResponse.data.history;
             } else if (Array.isArray(historyResponse.data)) {
               // 兼容直接返回數組的情況
               console.log(
                 `Found direct array for ${deployment.name}:`,
-                historyResponse.data
+                historyResponse.data,
               );
               historyData = historyResponse.data;
             } else if (
               historyResponse.data &&
-              typeof historyResponse.data === "object"
+              typeof historyResponse.data === 'object'
             ) {
               // 兼容單個對象的情況
               console.log(
                 `Found single object for ${deployment.name}:`,
-                historyResponse.data
+                historyResponse.data,
               );
               historyData = [historyResponse.data as Release];
             }
@@ -274,51 +270,49 @@ export const DeploymentsPage = () => {
 
           console.log(
             `Processed and sorted history data for ${deployment.name}:`,
-            historyData
+            historyData,
           );
           releasesData[deployment.name] = historyData;
         } catch (error: unknown) {
           const apiError = error as ApiError;
           console.error(
             `Failed to fetch history for ${deployment.name}:`,
-            apiError
+            apiError,
           );
           releasesData[deployment.name] = [];
         }
       }
 
-      console.log("All releases data:", releasesData);
+      console.log('All releases data:', releasesData);
       setReleases(releasesData);
-
-
 
       if (deploymentsData.length === 0) {
         toast({
-          title: "No deployments found",
-          description: "Create your first deployment!",
-          status: "info",
+          title: 'No deployments found',
+          description: 'Create your first deployment!',
+          status: 'info',
           duration: 3000,
           isClosable: true,
         });
       }
     } catch (error: unknown) {
       const apiError = error as ApiError;
-      console.error("Fetch deployments error:", apiError);
-      console.error("Error response:", apiError.response);
+      console.error('Fetch deployments error:', apiError);
+      console.error('Error response:', apiError.response);
 
       if (apiError.response?.status === 401) {
         toast({
-          title: "Authentication failed",
-          description: "Please check your Access Key.",
-          status: "error",
+          title: 'Authentication failed',
+          description: 'Please check your Access Key.',
+          status: 'error',
           duration: 5000,
           isClosable: true,
         });
       } else if (apiError.response?.status === 404) {
         toast({
-          title: "App not found",
+          title: 'App not found',
           description: `App "${appName}" not found. Please verify the app name and ensure you have access.`,
-          status: "warning",
+          status: 'warning',
           duration: 5000,
           isClosable: true,
         });
@@ -327,9 +321,9 @@ export const DeploymentsPage = () => {
         setReleases({});
       } else {
         toast({
-          title: "Failed to fetch deployments",
-          description: apiError.message || "Unknown error occurred",
-          status: "error",
+          title: 'Failed to fetch deployments',
+          description: apiError.message || 'Unknown error occurred',
+          status: 'error',
           duration: 5000,
           isClosable: true,
         });
@@ -345,7 +339,7 @@ export const DeploymentsPage = () => {
 
   const handleCreateDeployment = () => {
     setEditingDeployment(null);
-    setDeploymentName("");
+    setDeploymentName('');
     onOpen();
   };
 
@@ -366,12 +360,12 @@ export const DeploymentsPage = () => {
     try {
       await http.delete(
         `/apps/${encodeURIComponent(appName)}/deployments/${encodeURIComponent(
-          deletingDeployment
-        )}`
+          deletingDeployment,
+        )}`,
       );
       toast({
-        title: "Deployment deleted successfully",
-        status: "success",
+        title: 'Deployment deleted successfully',
+        status: 'success',
         duration: 3000,
         isClosable: true,
       });
@@ -379,16 +373,16 @@ export const DeploymentsPage = () => {
     } catch (error: unknown) {
       const apiError = error as ApiError;
       toast({
-        title: "Failed to delete deployment",
+        title: 'Failed to delete deployment',
         description: apiError.response?.data?.message || apiError.message,
-        status: "error",
+        status: 'error',
         duration: 5000,
         isClosable: true,
       });
-      console.error("Delete deployment error:", apiError);
+      console.error('Delete deployment error:', apiError);
     } finally {
       onDeleteClose();
-      setDeletingDeployment("");
+      setDeletingDeployment('');
     }
   };
 
@@ -399,15 +393,15 @@ export const DeploymentsPage = () => {
       if (editingDeployment) {
         await http.patch(
           `/apps/${encodeURIComponent(
-            appName
+            appName,
           )}/deployments/${encodeURIComponent(editingDeployment.name)}`,
           {
             name: deploymentName,
-          }
+          },
         );
         toast({
-          title: "Deployment renamed successfully",
-          status: "success",
+          title: 'Deployment renamed successfully',
+          status: 'success',
           duration: 3000,
           isClosable: true,
         });
@@ -416,8 +410,8 @@ export const DeploymentsPage = () => {
           name: deploymentName,
         });
         toast({
-          title: "Deployment created successfully",
-          status: "success",
+          title: 'Deployment created successfully',
+          status: 'success',
           duration: 3000,
           isClosable: true,
         });
@@ -429,11 +423,11 @@ export const DeploymentsPage = () => {
       const errorMessage =
         apiError.response?.data?.message ||
         (editingDeployment
-          ? "Failed to rename deployment"
-          : "Failed to create deployment");
+          ? 'Failed to rename deployment'
+          : 'Failed to create deployment');
       toast({
         title: errorMessage,
-        status: "error",
+        status: 'error',
         duration: 5000,
         isClosable: true,
       });
@@ -443,8 +437,8 @@ export const DeploymentsPage = () => {
   const handleCreateRelease = (deploymentName: string) => {
     setSelectedDeployment(deploymentName);
     setReleaseData({
-      appVersion: "",
-      description: "",
+      appVersion: '',
+      description: '',
       rollout: 100,
       isMandatory: false,
     });
@@ -467,8 +461,8 @@ export const DeploymentsPage = () => {
       !releaseData.appVersion
     ) {
       toast({
-        title: "Please fill all required fields",
-        status: "warning",
+        title: 'Please fill all required fields',
+        status: 'warning',
         duration: 3000,
         isClosable: true,
       });
@@ -477,32 +471,32 @@ export const DeploymentsPage = () => {
 
     try {
       const formData = new FormData();
-      formData.append("package", selectedFile);
+      formData.append('package', selectedFile);
       formData.append(
-        "packageInfo",
+        'packageInfo',
         JSON.stringify({
           appVersion: releaseData.appVersion,
-          description: releaseData.description || "",
+          description: releaseData.description || '',
           isMandatory: releaseData.isMandatory,
           rollout: releaseData.rollout,
-        })
+        }),
       );
 
       await http.post(
         `/apps/${encodeURIComponent(appName)}/deployments/${encodeURIComponent(
-          selectedDeployment
+          selectedDeployment,
         )}/release`,
         formData,
         {
           headers: {
-            "Content-Type": "multipart/form-data",
+            'Content-Type': 'multipart/form-data',
           },
-        }
+        },
       );
 
       toast({
-        title: "Release created successfully",
-        status: "success",
+        title: 'Release created successfully',
+        status: 'success',
         duration: 3000,
         isClosable: true,
       });
@@ -511,34 +505,34 @@ export const DeploymentsPage = () => {
     } catch (error: unknown) {
       const apiError = error as ApiError;
       toast({
-        title: "Failed to create release",
+        title: 'Failed to create release',
         description: apiError.response?.data?.message || apiError.message,
-        status: "error",
+        status: 'error',
         duration: 5000,
         isClosable: true,
       });
-      console.error("Create release error:", apiError);
+      console.error('Create release error:', apiError);
     }
   };
 
   const handleRollback = async (
     deploymentName: string,
-    targetLabel: string
+    targetLabel: string,
   ) => {
     if (!appName) return;
 
     try {
       await http.post(
         `/apps/${encodeURIComponent(appName)}/deployments/${encodeURIComponent(
-          deploymentName
+          deploymentName,
         )}/rollback`,
         {
           targetRelease: targetLabel,
-        }
+        },
       );
       toast({
-        title: "Rollback completed successfully",
-        status: "success",
+        title: 'Rollback completed successfully',
+        status: 'success',
         duration: 3000,
         isClosable: true,
       });
@@ -546,23 +540,21 @@ export const DeploymentsPage = () => {
     } catch (error: unknown) {
       const apiError = error as ApiError;
       toast({
-        title: "Failed to rollback",
+        title: 'Failed to rollback',
         description: apiError.response?.data?.message || apiError.message,
-        status: "error",
+        status: 'error',
         duration: 5000,
         isClosable: true,
       });
-      console.error("Rollback error:", apiError);
+      console.error('Rollback error:', apiError);
     }
   };
-
-
 
   const handlePromote = async () => {
     if (!appName || !promoteFromDeployment || !promoteToDeployment) {
       toast({
-        title: "Please select both source and destination deployments",
-        status: "warning",
+        title: 'Please select both source and destination deployments',
+        status: 'warning',
         duration: 3000,
         isClosable: true,
       });
@@ -572,56 +564,59 @@ export const DeploymentsPage = () => {
     try {
       await http.post(
         `/apps/${encodeURIComponent(appName)}/deployments/${encodeURIComponent(
-          promoteFromDeployment
-        )}/promote/${encodeURIComponent(promoteToDeployment)}`
+          promoteFromDeployment,
+        )}/promote/${encodeURIComponent(promoteToDeployment)}`,
       );
       toast({
-        title: "Promotion completed successfully",
-        status: "success",
+        title: 'Promotion completed successfully',
+        status: 'success',
         duration: 3000,
         isClosable: true,
       });
-      setPromoteFromDeployment("");
-      setPromoteToDeployment("");
+      setPromoteFromDeployment('');
+      setPromoteToDeployment('');
       onPromoteClose();
       fetchDeployments();
     } catch (error: unknown) {
       const apiError = error as ApiError;
       toast({
-        title: "Failed to promote",
+        title: 'Failed to promote',
         description: apiError.response?.data?.message || apiError.message,
-        status: "error",
+        status: 'error',
         duration: 5000,
         isClosable: true,
       });
-      console.error("Promote error:", apiError);
+      console.error('Promote error:', apiError);
     }
   };
 
-  const handleCopyDeploymentKey = async (deploymentKey: string, deploymentName: string) => {
+  const handleCopyDeploymentKey = async (
+    deploymentKey: string,
+    deploymentName: string,
+  ) => {
     try {
       await navigator.clipboard.writeText(deploymentKey);
       toast({
-        title: "Deployment key copied!",
+        title: 'Deployment key copied!',
         description: `Key for "${deploymentName}" copied to clipboard`,
-        status: "success",
+        status: 'success',
         duration: 2000,
         isClosable: true,
       });
     } catch (error) {
       // Fallback for older browsers
-      console.warn("Clipboard API not available, using fallback:", error);
-      const textArea = document.createElement("textarea");
+      console.warn('Clipboard API not available, using fallback:', error);
+      const textArea = document.createElement('textarea');
       textArea.value = deploymentKey;
       document.body.appendChild(textArea);
       textArea.select();
-      document.execCommand("copy");
+      document.execCommand('copy');
       document.body.removeChild(textArea);
-      
+
       toast({
-        title: "Deployment key copied!",
+        title: 'Deployment key copied!',
         description: `Key for "${deploymentName}" copied to clipboard`,
-        status: "success",
+        status: 'success',
         duration: 2000,
         isClosable: true,
       });
@@ -630,23 +625,36 @@ export const DeploymentsPage = () => {
 
   return (
     <VStack spacing={6} align="stretch">
-      <HStack justify="space-between">
-        <HStack spacing={4}>
+      <Flex
+        direction={{ base: 'column', xl: 'row' }}
+        justify="space-between"
+        align={{ base: 'stretch', xl: 'center' }}
+        gap={4}
+      >
+        <VStack align="flex-start" spacing={2}>
           <Button
             leftIcon={<ArrowBackIcon />}
             variant="ghost"
-            onClick={() => navigate("/apps")}
+            size="sm"
+            px={0}
+            color="neutral.600"
+            _hover={{ bg: 'transparent', color: 'neutral.900' }}
+            onClick={() => navigate('/apps')}
           >
-            Back to Apps
+            Applications
           </Button>
-          <Heading size="lg" color="primary.600">
-            Deployments for {appName}
+          <Heading size="lg" color="neutral.900" letterSpacing="-0.02em">
+            {appName}
           </Heading>
-        </HStack>
-        <HStack spacing={3}>
+          <Text color="neutral.600" fontSize="sm">
+            Publish, promote, or roll back a release.
+          </Text>
+        </VStack>
+        <HStack spacing={3} flexWrap="wrap">
           <Button
             leftIcon={<FiUsers />}
             variant="outline"
+            borderColor="neutral.200"
             onClick={onCollaboratorOpen}
           >
             Collaborators
@@ -654,6 +662,7 @@ export const DeploymentsPage = () => {
           <Button
             leftIcon={<FiArrowUp />}
             variant="outline"
+            borderColor="neutral.200"
             onClick={onPromoteOpen}
             isDisabled={deployments.length < 2}
           >
@@ -664,12 +673,18 @@ export const DeploymentsPage = () => {
             colorScheme="brand"
             onClick={handleCreateDeployment}
           >
-            Create Deployment
+            Create deployment
           </Button>
         </HStack>
-      </HStack>
+      </Flex>
 
-      <Box bg="white" rounded="md" shadow="sm" p={6}>
+      <Box
+        bg="white"
+        rounded="xl"
+        borderWidth="1px"
+        borderColor="neutral.200"
+        p={{ base: 4, md: 6 }}
+      >
         {loading ? (
           <Center py={12}>
             <VStack spacing={4}>
@@ -705,7 +720,7 @@ export const DeploymentsPage = () => {
                 <Card key={deployment.name} w="100%">
                   <CardBody>
                     <Grid
-                      templateColumns="1fr auto"
+                      templateColumns={{ base: '1fr', lg: '1fr auto' }}
                       gap={4}
                       alignItems="center"
                     >
@@ -730,12 +745,16 @@ export const DeploymentsPage = () => {
 
                         {/* Deployment Key Section */}
                         <HStack spacing={2} align="center">
-                          <Text fontSize="sm" color="gray.600" fontWeight="medium">
+                          <Text
+                            fontSize="sm"
+                            color="gray.600"
+                            fontWeight="medium"
+                          >
                             Deployment Key:
                           </Text>
-                          <Text 
-                            fontSize="sm" 
-                            fontFamily="mono" 
+                          <Text
+                            fontSize="sm"
+                            fontFamily="mono"
                             color="gray.700"
                             bg="gray.100"
                             px={2}
@@ -752,17 +771,22 @@ export const DeploymentsPage = () => {
                             size="sm"
                             variant="ghost"
                             colorScheme="brand"
-                            onClick={() => handleCopyDeploymentKey(deployment.key, deployment.name)}
+                            onClick={() =>
+                              handleCopyDeploymentKey(
+                                deployment.key,
+                                deployment.name,
+                              )
+                            }
                           />
                         </HStack>
 
                         {currentPackage || latestRelease ? (
                           <VStack align="start" spacing={1}>
                             <Text fontSize="sm" color="gray.600">
-                              {currentPackage ? "Current" : "Latest"} Version:{" "}
-                              {(currentPackage || latestRelease)?.appVersion} •{" "}
+                              {currentPackage ? 'Current' : 'Latest'} Version:{' '}
+                              {(currentPackage || latestRelease)?.appVersion} •{' '}
                               {fromNow(
-                                (currentPackage || latestRelease)?.uploadTime
+                                (currentPackage || latestRelease)?.uploadTime,
                               )}
                             </Text>
                             <HStack>
@@ -824,7 +848,7 @@ export const DeploymentsPage = () => {
                           <AccordionItem border="none">
                             <AccordionButton
                               px={0}
-                              _hover={{ bg: "transparent" }}
+                              _hover={{ bg: 'transparent' }}
                             >
                               <HStack>
                                 <TimeIcon color="gray.500" />
@@ -851,7 +875,7 @@ export const DeploymentsPage = () => {
                                           <HStack>
                                             <Tag
                                               colorScheme={
-                                                index === 0 ? "green" : "gray"
+                                                index === 0 ? 'green' : 'gray'
                                               }
                                               size="sm"
                                             >
@@ -883,13 +907,13 @@ export const DeploymentsPage = () => {
                                           </HStack>
                                           <Text fontSize="sm" color="gray.600">
                                             {release.description ||
-                                              "No description"}
+                                              'No description'}
                                           </Text>
                                           <Text fontSize="xs" color="gray.500">
                                             Rollout: {release.rollout || 100}% •
-                                            Size:{" "}
-                                            {(release.size / 1024).toFixed(1)}{" "}
-                                            KB •{" "}
+                                            Size:{' '}
+                                            {(release.size / 1024).toFixed(1)}{' '}
+                                            KB •{' '}
                                             {formatDateTime(release.uploadTime)}
                                           </Text>
                                         </VStack>
@@ -901,7 +925,7 @@ export const DeploymentsPage = () => {
                                             onClick={() =>
                                               handleRollback(
                                                 deployment.name,
-                                                release.label || ""
+                                                release.label || '',
                                               )
                                             }
                                           >
@@ -931,7 +955,7 @@ export const DeploymentsPage = () => {
         <ModalOverlay />
         <ModalContent>
           <ModalHeader>
-            {editingDeployment ? "Rename Deployment" : "Create New Deployment"}
+            {editingDeployment ? 'Rename Deployment' : 'Create New Deployment'}
           </ModalHeader>
           <ModalCloseButton />
           <ModalBody>
@@ -954,7 +978,7 @@ export const DeploymentsPage = () => {
                 Cancel
               </Button>
               <Button colorScheme="brand" onClick={handleSubmitDeployment}>
-                {editingDeployment ? "Rename" : "Create"}
+                {editingDeployment ? 'Rename' : 'Create'}
               </Button>
             </HStack>
           </ModalFooter>
@@ -984,7 +1008,7 @@ export const DeploymentsPage = () => {
                   variant="outline"
                   w="100%"
                 >
-                  {selectedFile ? selectedFile.name : "Select Package File"}
+                  {selectedFile ? selectedFile.name : 'Select Package File'}
                 </Button>
               </FormControl>
 
@@ -1107,7 +1131,7 @@ export const DeploymentsPage = () => {
 
       {/* Collaborators Modal */}
       <CollaboratorsManager
-        appName={appName || ""}
+        appName={appName || ''}
         isOpen={isCollaboratorOpen}
         onClose={onCollaboratorClose}
         onUpdate={fetchDeployments}
@@ -1124,7 +1148,7 @@ export const DeploymentsPage = () => {
               <Text color="gray.600">
                 Promote the latest release from one deployment to another.
               </Text>
-              
+
               <FormControl isRequired>
                 <FormLabel>From Deployment (Source)</FormLabel>
                 <Select
@@ -1150,7 +1174,9 @@ export const DeploymentsPage = () => {
                   focusBorderColor="primary.500"
                 >
                   {deployments
-                    .filter((deployment) => deployment.name !== promoteFromDeployment)
+                    .filter(
+                      (deployment) => deployment.name !== promoteFromDeployment,
+                    )
                     .map((deployment) => (
                       <option key={deployment.name} value={deployment.name}>
                         {deployment.name}
@@ -1163,7 +1189,8 @@ export const DeploymentsPage = () => {
                 <Card bg="blue.50" w="100%">
                   <CardBody>
                     <Text fontSize="sm" color="blue.800">
-                      This will copy the latest release from "{promoteFromDeployment}" to "{promoteToDeployment}".
+                      This will copy the latest release from "
+                      {promoteFromDeployment}" to "{promoteToDeployment}".
                     </Text>
                   </CardBody>
                 </Card>

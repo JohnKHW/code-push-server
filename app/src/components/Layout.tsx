@@ -15,14 +15,13 @@ import {
   DrawerCloseButton,
   useBreakpointValue,
   Text,
-  Badge,
 } from "@chakra-ui/react";
 import { HamburgerIcon } from "@chakra-ui/icons";
 import { FiHome, FiActivity, FiUsers, FiKey, FiTool } from "react-icons/fi";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { CorsSettings } from "./CorsSettings";
-import type { ReactNode } from "react";
+import type { ReactNode, ReactElement } from "react";
 
 interface LayoutProps {
   children: ReactNode;
@@ -32,41 +31,59 @@ interface NavItem {
   key: string;
   label: string;
   path: string;
-  icon?: React.ReactElement;
-  badge?: string;
-  comingSoon?: boolean;
+  icon?: ReactElement;
 }
 
-const navItems: NavItem[] = [
+interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
+const navGroups: NavGroup[] = [
   {
-    key: "/apps",
-    label: "Applications",
-    path: "/apps",
-    icon: <FiHome size={18} />,
+    label: "Releases",
+    items: [
+      {
+        key: "/apps",
+        label: "Applications",
+        path: "/apps",
+        icon: <FiHome size={16} />,
+      },
+    ],
   },
   {
-    key: "/account",
     label: "Account",
-    path: "/account",
-    icon: <FiUsers size={18} />,
+    items: [
+      {
+        key: "/account",
+        label: "Account",
+        path: "/account",
+        icon: <FiUsers size={16} />,
+      },
+      {
+        key: "/access-keys",
+        label: "Access Keys",
+        path: "/access-keys",
+        icon: <FiKey size={16} />,
+      },
+    ],
   },
   {
-    key: "/access-keys",
-    label: "Access Keys",
-    path: "/access-keys",
-    icon: <FiKey size={18} />,
-  },
-  {
-    key: "/metrics",
-    label: "Analytics",
-    path: "/metrics",
-    icon: <FiActivity size={18} />,
-  },
-  {
-    key: "/debug",
-    label: "Debug Tools",
-    path: "/debug",
-    icon: <FiTool size={18} />,
+    label: "Tools",
+    items: [
+      {
+        key: "/metrics",
+        label: "Analytics",
+        path: "/metrics",
+        icon: <FiActivity size={16} />,
+      },
+      {
+        key: "/debug",
+        label: "Debug Tools",
+        path: "/debug",
+        icon: <FiTool size={16} />,
+      },
+    ],
   },
 ];
 
@@ -82,76 +99,78 @@ export const Layout = ({ children }: LayoutProps) => {
     navigate("/auth");
   };
 
-  const isActivePath = (path: string) => {
-    return (
-      location.pathname === path || location.pathname.startsWith(path + "/")
-    );
-  };
+  const isActivePath = (path: string) =>
+    location.pathname === path || location.pathname.startsWith(path + "/");
 
   const NavContent = () => (
-    <VStack spacing={1} align="stretch" w="100%">
-      {navItems.map((item) => (
-        <Button
-          key={item.key}
-          variant={isActivePath(item.path) ? "solid" : "ghost"}
-          colorScheme={isActivePath(item.path) ? "brand" : "gray"}
-          justifyContent="flex-start"
-          leftIcon={item.icon}
-          onClick={() => {
-            navigate(item.path);
-            onClose();
-          }}
-          w="100%"
-          h="auto"
-          py={3}
-          px={3}
-          cursor="pointer"
-          position="relative"
-          borderRadius="lg"
-          fontSize="sm"
-          fontWeight={isActivePath(item.path) ? "semibold" : "medium"}
-          _hover={{
-            bg: isActivePath(item.path) ? undefined : "gray.100",
-            transform: "translateX(2px)",
-            transition: "all 0.2s ease-in-out",
-          }}
-          _active={{
-            transform: "translateX(1px)",
-          }}
-          transition="all 0.2s ease-in-out"
-        >
-          <Flex justify="space-between" align="center" w="100%">
-            <Text>{item.label}</Text>
-            {item.badge && (
-              <Badge 
-                size="sm" 
-                colorScheme={isActivePath(item.path) ? "white" : "green"} 
-                variant={isActivePath(item.path) ? "solid" : "subtle"}
-              >
-                {item.badge}
-              </Badge>
-            )}
-          </Flex>
-        </Button>
+    <VStack spacing={6} align="stretch" w="100%">
+      {navGroups.map((group) => (
+        <Box key={group.label}>
+          <Text
+            px={3}
+            mb={2}
+            fontSize="xs"
+            fontWeight="semibold"
+            letterSpacing="0.08em"
+            textTransform="uppercase"
+            color="neutral.400"
+          >
+            {group.label}
+          </Text>
+          <VStack spacing={1} align="stretch">
+            {group.items.map((item) => {
+              const active = isActivePath(item.path);
+              return (
+                <Button
+                  key={item.key}
+                  variant="ghost"
+                  justifyContent="flex-start"
+                  leftIcon={item.icon}
+                  onClick={() => {
+                    navigate(item.path);
+                    onClose();
+                  }}
+                  w="100%"
+                  h="auto"
+                  py={2.5}
+                  px={3}
+                  cursor="pointer"
+                  borderRadius="md"
+                  fontSize="sm"
+                  fontWeight={active ? "semibold" : "medium"}
+                  color={active ? "neutral.900" : "neutral.600"}
+                  bg={active ? "brand.50" : "transparent"}
+                  boxShadow={active ? "inset 3px 0 0 var(--chakra-colors-brand-500)" : "none"}
+                  _hover={{
+                    bg: active ? "brand.50" : "neutral.100",
+                    color: "neutral.900",
+                  }}
+                  transition="background-color 0.2s ease, color 0.2s ease"
+                >
+                  {item.label}
+                </Button>
+              );
+            })}
+          </VStack>
+        </Box>
       ))}
     </VStack>
   );
 
   return (
-    <Box minH="100vh" bg="gray.50">
-      {/* Header */}
+    <Box minH="100vh" bg="neutral.50">
       <Box
         bg="white"
         shadow="sm"
         borderBottom="1px"
-        borderColor="gray.200"
+        borderColor="neutral.200"
         px={{ base: 4, md: 6 }}
         py={4}
         position="sticky"
         top={0}
         zIndex={10}
       >
-        <Flex justify="space-between" align="center">
+        <Flex justify="space-between" align="center" maxW="100%">
           <HStack spacing={{ base: 2, md: 4 }}>
             {isMobile && (
               <IconButton
@@ -160,38 +179,45 @@ export const Layout = ({ children }: LayoutProps) => {
                 onClick={onOpen}
                 variant="ghost"
                 size="md"
+                color="neutral.800"
               />
             )}
-            <Heading 
-              size={{ base: "md", md: "lg" }} 
-              color="primary.600"
-              fontSize={{ base: "xl", md: "2xl" }}
-            >
-              CodePush Admin
-            </Heading>
+            <HStack spacing={3}>
+              <Box w="8px" h="8px" borderRadius="full" bg="brand.500" aria-hidden />
+              <Heading
+                size={{ base: "md", md: "lg" }}
+                color="neutral.900"
+                fontWeight="semibold"
+                letterSpacing="-0.02em"
+              >
+                CodePush
+              </Heading>
+            </HStack>
           </HStack>
 
           <HStack spacing={{ base: 2, md: 4 }}>
             <CorsSettings />
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               onClick={handleLogout}
               size={{ base: "sm", md: "md" }}
+              color="neutral.700"
+              _hover={{ bg: "neutral.100", color: "neutral.900" }}
+              transition="background-color 0.2s ease, color 0.2s ease"
             >
-              Logout
+              Log out
             </Button>
           </HStack>
         </Flex>
       </Box>
 
       <Flex>
-        {/* Desktop Sidebar */}
         {!isMobile && (
           <Box
             w={{ base: "200px", lg: "240px", xl: "260px" }}
             bg="white"
             borderRight="1px"
-            borderColor="gray.200"
+            borderColor="neutral.200"
             minH="calc(100vh - 73px)"
             p={4}
             position="sticky"
@@ -203,16 +229,15 @@ export const Layout = ({ children }: LayoutProps) => {
           </Box>
         )}
 
-        {/* Mobile Drawer */}
         <Drawer isOpen={isOpen} placement="left" onClose={onClose}>
           <DrawerOverlay />
           <DrawerContent maxW="280px">
             <DrawerCloseButton />
-            <DrawerHeader 
-              borderBottomWidth="1px" 
-              borderColor="gray.200"
-              color="primary.600"
-              fontWeight="bold"
+            <DrawerHeader
+              borderBottomWidth="1px"
+              borderColor="neutral.200"
+              color="neutral.900"
+              fontWeight="semibold"
             >
               Navigation
             </DrawerHeader>
@@ -222,13 +247,7 @@ export const Layout = ({ children }: LayoutProps) => {
           </DrawerContent>
         </Drawer>
 
-        {/* Main Content */}
-        <Box 
-          flex={1} 
-          p={{ base: 4, md: 6 }}
-          minH="calc(100vh - 73px)"
-          bg="gray.50"
-        >
+        <Box flex={1} p={{ base: 4, md: 6 }} minH="calc(100vh - 73px)" bg="neutral.50">
           <Box maxW="7xl" mx="auto">
             {children}
           </Box>

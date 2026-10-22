@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   VStack,
@@ -38,12 +38,13 @@ import {
   Grid,
   Spacer,
   Tag,
-} from "@chakra-ui/react";
-import { AddIcon, EditIcon, DeleteIcon, ViewIcon } from "@chakra-ui/icons";
-import { useNavigate } from "react-router-dom";
-import { http } from "../api/http";
-import type { AxiosError } from "axios";
-import { useRef } from "react";
+  Flex,
+} from '@chakra-ui/react';
+import { AddIcon, EditIcon, DeleteIcon, ViewIcon } from '@chakra-ui/icons';
+import { useNavigate } from 'react-router-dom';
+import { http } from '../api/http';
+import type { AxiosError } from 'axios';
+import { useRef } from 'react';
 
 interface App {
   name: string;
@@ -61,10 +62,10 @@ const parseAppName = (appName: string) => {
   // 常見的分隔符：-, _, 空格
   const separators = ['-', '_', ' '];
   const platforms = ['ios', 'android', 'web', 'windows', 'macos', 'linux'];
-  
+
   let baseName = appName;
   let platform = 'other';
-  
+
   for (const separator of separators) {
     const parts = appName.toLowerCase().split(separator);
     if (parts.length > 1) {
@@ -73,46 +74,60 @@ const parseAppName = (appName: string) => {
         platform = lastPart;
         // 保持原始大小寫的基礎名稱
         const lowerCaseAppName = appName.toLowerCase();
-        const separatorIndex = lowerCaseAppName.lastIndexOf(separator + lastPart);
+        const separatorIndex = lowerCaseAppName.lastIndexOf(
+          separator + lastPart,
+        );
         baseName = appName.substring(0, separatorIndex);
         break;
       }
     }
   }
-  
+
   return { baseName, platform };
 };
 
 // 將應用程式按基礎名稱分組
 const groupAppsByBaseName = (apps: App[]): AppGroup[] => {
   const groups: Record<string, AppGroup> = {};
-  
-  apps.forEach(app => {
+
+  apps.forEach((app) => {
     const { baseName, platform } = parseAppName(app.name);
-    
+
     if (!groups[baseName]) {
       groups[baseName] = {
         baseName,
-        apps: []
+        apps: [],
       };
     }
-    
+
     groups[baseName].apps.push({
       ...app,
       platform,
-      displayName: app.name
+      displayName: app.name,
     });
   });
-  
+
   // 排序：先按基礎名稱，再按平台
-  Object.values(groups).forEach(group => {
+  Object.values(groups).forEach((group) => {
     group.apps.sort((a, b) => {
-      const platformOrder = ['ios', 'android', 'web', 'windows', 'macos', 'linux', 'other'];
-      return platformOrder.indexOf(a.platform) - platformOrder.indexOf(b.platform);
+      const platformOrder = [
+        'ios',
+        'android',
+        'web',
+        'windows',
+        'macos',
+        'linux',
+        'other',
+      ];
+      return (
+        platformOrder.indexOf(a.platform) - platformOrder.indexOf(b.platform)
+      );
     });
   });
-  
-  return Object.values(groups).sort((a, b) => a.baseName.localeCompare(b.baseName));
+
+  return Object.values(groups).sort((a, b) =>
+    a.baseName.localeCompare(b.baseName),
+  );
 };
 
 // 獲取平台對應的顏色和顯示名稱
@@ -124,9 +139,9 @@ const getPlatformInfo = (platform: string) => {
     windows: { color: 'cyan', displayName: 'Windows' },
     macos: { color: 'gray', displayName: 'macOS' },
     linux: { color: 'orange', displayName: 'Linux' },
-    other: { color: 'gray', displayName: 'Other' }
+    other: { color: 'gray', displayName: 'Other' },
   };
-  
+
   return platformMap[platform] || platformMap.other;
 };
 
@@ -140,8 +155,8 @@ export const AppsPage = () => {
     onClose: onDeleteClose,
   } = useDisclosure();
   const [editingApp, setEditingApp] = useState<App | null>(null);
-  const [deletingApp, setDeletingApp] = useState<string>("");
-  const [appName, setAppName] = useState("");
+  const [deletingApp, setDeletingApp] = useState<string>('');
+  const [appName, setAppName] = useState('');
   const navigate = useNavigate();
   const toast = useToast();
   const cancelRef = useRef<HTMLButtonElement>(null);
@@ -149,10 +164,10 @@ export const AppsPage = () => {
   const fetchApps = useCallback(async () => {
     try {
       setLoading(true);
-      console.log("Fetching apps from API...");
-      const response = await http.get("/apps");
-      console.log("API Response:", response);
-      console.log("Response data:", response.data);
+      console.log('Fetching apps from API...');
+      const response = await http.get('/apps');
+      console.log('API Response:', response);
+      console.log('Response data:', response.data);
 
       // 處理不同的響應格式
       const appsData: App[] = response.data.apps;
@@ -160,39 +175,33 @@ export const AppsPage = () => {
       setApps(response.data.apps);
 
       if (appsData.length === 0) {
-        toast({
-          title: "No applications found",
-          description: "Create your first app!",
-          status: "info",
-          duration: 3000,
-          isClosable: true,
-        });
+        return;
       }
     } catch (error: unknown) {
-      console.error("Fetch apps error:", error);
-      console.error("Error response:", (error as AxiosError).response);
+      console.error('Fetch apps error:', error);
+      console.error('Error response:', (error as AxiosError).response);
 
       if ((error as AxiosError).response?.status === 401) {
         toast({
-          title: "Authentication failed",
-          description: "Please check your Access Key.",
-          status: "error",
+          title: 'Authentication failed',
+          description: 'Please check your Access Key.',
+          status: 'error',
           duration: 5000,
           isClosable: true,
         });
       } else if ((error as AxiosError).response?.status === 404) {
         toast({
-          title: "Apps endpoint not found",
-          description: "Please check server configuration.",
-          status: "warning",
+          title: 'Apps endpoint not found',
+          description: 'Please check server configuration.',
+          status: 'warning',
           duration: 5000,
           isClosable: true,
         });
       } else {
         toast({
-          title: "Failed to fetch applications",
+          title: 'Failed to fetch applications',
           description: (error as Error).message,
-          status: "error",
+          status: 'error',
           duration: 5000,
           isClosable: true,
         });
@@ -208,7 +217,7 @@ export const AppsPage = () => {
 
   const handleCreateApp = () => {
     setEditingApp(null);
-    setAppName("");
+    setAppName('');
     onOpen();
   };
 
@@ -227,31 +236,31 @@ export const AppsPage = () => {
     try {
       await http.delete(`/apps/${encodeURIComponent(deletingApp)}`);
       toast({
-        title: "Application deleted successfully",
-        status: "success",
+        title: 'Application deleted successfully',
+        status: 'success',
         duration: 3000,
         isClosable: true,
       });
       fetchApps();
     } catch (error: unknown) {
       toast({
-        title: "Failed to delete application",
-        status: "error",
+        title: 'Failed to delete application',
+        status: 'error',
         duration: 5000,
         isClosable: true,
       });
-      console.error("Delete app error:", error);
+      console.error('Delete app error:', error);
     } finally {
       onDeleteClose();
-      setDeletingApp("");
+      setDeletingApp('');
     }
   };
 
   const handleSubmit = async () => {
     if (!appName.trim()) {
       toast({
-        title: "Please enter application name",
-        status: "warning",
+        title: 'Please enter application name',
+        status: 'warning',
         duration: 3000,
         isClosable: true,
       });
@@ -264,16 +273,16 @@ export const AppsPage = () => {
           name: appName,
         });
         toast({
-          title: "Application renamed successfully",
-          status: "success",
+          title: 'Application renamed successfully',
+          status: 'success',
           duration: 3000,
           isClosable: true,
         });
       } else {
-        await http.post("/apps", { name: appName });
+        await http.post('/apps', { name: appName });
         toast({
-          title: "Application created successfully",
-          status: "success",
+          title: 'Application created successfully',
+          status: 'success',
           duration: 3000,
           isClosable: true,
         });
@@ -284,11 +293,11 @@ export const AppsPage = () => {
       const errorMessage =
         (error as AxiosError<{ message: string }>).response?.data?.message ||
         (editingApp
-          ? "Failed to rename application"
-          : "Failed to create application");
+          ? 'Failed to rename application'
+          : 'Failed to create application');
       toast({
         title: errorMessage,
-        status: "error",
+        status: 'error',
         duration: 5000,
         isClosable: true,
       });
@@ -301,20 +310,41 @@ export const AppsPage = () => {
 
   return (
     <VStack spacing={6} align="stretch">
-      <HStack justify="space-between">
-        <Heading size="lg" color="primary.600">
-          Applications
-        </Heading>
+      <Flex
+        direction={{ base: 'column', md: 'row' }}
+        justify="space-between"
+        align={{ base: 'stretch', md: 'flex-end' }}
+        gap={4}
+      >
+        <VStack align="flex-start" spacing={1}>
+          <Heading size="lg" color="neutral.900" letterSpacing="-0.02em">
+            Applications
+          </Heading>
+          <Text color="neutral.600" fontSize="sm">
+            {loading
+              ? 'Loading…'
+              : apps.length === 0
+                ? 'Create an app, then publish a release to a deployment.'
+                : `${apps.length} ${apps.length === 1 ? 'app' : 'apps'}`}
+          </Text>
+        </VStack>
         <Button
           leftIcon={<AddIcon />}
           colorScheme="brand"
           onClick={handleCreateApp}
+          alignSelf={{ base: 'stretch', md: 'auto' }}
         >
-          Create Application
+          Create application
         </Button>
-      </HStack>
+      </Flex>
 
-      <Box bg="white" rounded="md" shadow="sm" p={6}>
+      <Box
+        bg="white"
+        rounded="xl"
+        borderWidth="1px"
+        borderColor="neutral.200"
+        p={{ base: 4, md: 6 }}
+      >
         {loading ? (
           <Center py={12}>
             <VStack spacing={4}>
@@ -325,15 +355,23 @@ export const AppsPage = () => {
         ) : apps.length === 0 ? (
           <Center py={12}>
             <VStack spacing={4}>
-              <Text fontSize="lg" color="gray.500">
-                No applications found
+              <Text fontSize="lg" color="neutral.800" fontWeight="medium">
+                No applications yet
+              </Text>
+              <Text
+                fontSize="sm"
+                color="neutral.500"
+                textAlign="center"
+                maxW="sm"
+              >
+                An application is the container for iOS and Android deployments.
               </Text>
               <Button
                 leftIcon={<AddIcon />}
                 colorScheme="brand"
                 onClick={handleCreateApp}
               >
-                Create Your First Application
+                Create application
               </Button>
             </VStack>
           </Center>
@@ -344,31 +382,47 @@ export const AppsPage = () => {
                 <CardBody>
                   {group.apps.length === 1 ? (
                     // 單一應用程式，直接顯示
-                    <Grid templateColumns="1fr auto" gap={4} alignItems="center">
+                    <Grid
+                      templateColumns={{ base: '1fr', md: '1fr auto' }}
+                      gap={4}
+                      alignItems="center"
+                    >
                       <VStack align="start" spacing={2}>
                         <HStack>
                           <ViewIcon color="primary.500" />
                           <Text fontSize="lg" fontWeight="bold">
                             {group.apps[0].displayName}
                           </Text>
-                          <Tag 
-                            colorScheme={getPlatformInfo(group.apps[0].platform).color} 
+                          <Tag
+                            colorScheme={
+                              getPlatformInfo(group.apps[0].platform).color
+                            }
                             size="sm"
                           >
-                            {getPlatformInfo(group.apps[0].platform).displayName}
+                            {
+                              getPlatformInfo(group.apps[0].platform)
+                                .displayName
+                            }
                           </Tag>
                         </HStack>
                         <HStack spacing={4}>
                           <HStack>
-                            <Text fontSize="sm" color="gray.600">Deployments:</Text>
+                            <Text fontSize="sm" color="gray.600">
+                              Deployments:
+                            </Text>
                             <Badge colorScheme="blue">
                               {group.apps[0].deployments?.length || 0}
                             </Badge>
                           </HStack>
                           <HStack>
-                            <Text fontSize="sm" color="gray.600">Collaborators:</Text>
+                            <Text fontSize="sm" color="gray.600">
+                              Collaborators:
+                            </Text>
                             <Badge colorScheme="green">
-                              {Object.keys(group.apps[0].collaborators || {}).length}
+                              {
+                                Object.keys(group.apps[0].collaborators || {})
+                                  .length
+                              }
                             </Badge>
                           </HStack>
                         </HStack>
@@ -378,7 +432,9 @@ export const AppsPage = () => {
                           size="sm"
                           colorScheme="brand"
                           leftIcon={<ViewIcon />}
-                          onClick={() => handleViewDeployments(group.apps[0].name)}
+                          onClick={() =>
+                            handleViewDeployments(group.apps[0].name)
+                          }
                         >
                           Deployments
                         </Button>
@@ -403,7 +459,7 @@ export const AppsPage = () => {
                     // 多個應用程式，使用可摺疊介面
                     <Accordion allowToggle>
                       <AccordionItem border="none">
-                        <AccordionButton px={0} _hover={{ bg: "transparent" }}>
+                        <AccordionButton px={0} _hover={{ bg: 'transparent' }}>
                           <HStack flex="1">
                             <ViewIcon color="primary.500" />
                             <Text fontSize="lg" fontWeight="bold">
@@ -411,9 +467,11 @@ export const AppsPage = () => {
                             </Text>
                             <HStack spacing={1}>
                               {group.apps.map((app) => (
-                                <Tag 
+                                <Tag
                                   key={app.name}
-                                  colorScheme={getPlatformInfo(app.platform).color} 
+                                  colorScheme={
+                                    getPlatformInfo(app.platform).color
+                                  }
                                   size="sm"
                                 >
                                   {getPlatformInfo(app.platform).displayName}
@@ -430,32 +488,57 @@ export const AppsPage = () => {
                         <AccordionPanel px={0} pt={4}>
                           <VStack spacing={3}>
                             {group.apps.map((app) => (
-                              <Card key={app.name} size="sm" w="100%" bg="gray.50">
+                              <Card
+                                key={app.name}
+                                size="sm"
+                                w="100%"
+                                bg="gray.50"
+                              >
                                 <CardBody>
-                                  <Grid templateColumns="1fr auto" gap={4} alignItems="center">
+                                  <Grid
+                                    templateColumns={{
+                                      base: '1fr',
+                                      md: '1fr auto',
+                                    }}
+                                    gap={4}
+                                    alignItems="center"
+                                  >
                                     <VStack align="start" spacing={1}>
                                       <HStack>
                                         <Text fontWeight="semibold">
                                           {app.displayName}
                                         </Text>
-                                        <Tag 
-                                          colorScheme={getPlatformInfo(app.platform).color} 
+                                        <Tag
+                                          colorScheme={
+                                            getPlatformInfo(app.platform).color
+                                          }
                                           size="sm"
                                         >
-                                          {getPlatformInfo(app.platform).displayName}
+                                          {
+                                            getPlatformInfo(app.platform)
+                                              .displayName
+                                          }
                                         </Tag>
                                       </HStack>
                                       <HStack spacing={4}>
                                         <HStack>
-                                          <Text fontSize="sm" color="gray.600">Deployments:</Text>
+                                          <Text fontSize="sm" color="gray.600">
+                                            Deployments:
+                                          </Text>
                                           <Badge colorScheme="blue" size="sm">
                                             {app.deployments?.length || 0}
                                           </Badge>
                                         </HStack>
                                         <HStack>
-                                          <Text fontSize="sm" color="gray.600">Collaborators:</Text>
+                                          <Text fontSize="sm" color="gray.600">
+                                            Collaborators:
+                                          </Text>
                                           <Badge colorScheme="green" size="sm">
-                                            {Object.keys(app.collaborators || {}).length}
+                                            {
+                                              Object.keys(
+                                                app.collaborators || {},
+                                              ).length
+                                            }
                                           </Badge>
                                         </HStack>
                                       </HStack>
@@ -465,7 +548,9 @@ export const AppsPage = () => {
                                         size="sm"
                                         colorScheme="brand"
                                         leftIcon={<ViewIcon />}
-                                        onClick={() => handleViewDeployments(app.name)}
+                                        onClick={() =>
+                                          handleViewDeployments(app.name)
+                                        }
                                       >
                                         Deployments
                                       </Button>
@@ -482,7 +567,9 @@ export const AppsPage = () => {
                                         size="sm"
                                         colorScheme="red"
                                         variant="outline"
-                                        onClick={() => handleDeleteApp(app.name)}
+                                        onClick={() =>
+                                          handleDeleteApp(app.name)
+                                        }
                                       />
                                     </HStack>
                                   </Grid>
@@ -506,7 +593,7 @@ export const AppsPage = () => {
         <ModalOverlay />
         <ModalContent>
           <ModalHeader>
-            {editingApp ? "Rename Application" : "Create New Application"}
+            {editingApp ? 'Rename Application' : 'Create New Application'}
           </ModalHeader>
           <ModalCloseButton />
           <ModalBody>
@@ -529,7 +616,7 @@ export const AppsPage = () => {
                 Cancel
               </Button>
               <Button colorScheme="brand" onClick={handleSubmit}>
-                {editingApp ? "Rename" : "Create"}
+                {editingApp ? 'Rename' : 'Create'}
               </Button>
             </HStack>
           </ModalFooter>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 import {
   Box,
   Button,
@@ -21,8 +21,8 @@ import {
   Grid,
   GridItem,
   Code,
-} from '@chakra-ui/react';
-import { SettingsIcon, InfoIcon } from '@chakra-ui/icons';
+} from "@chakra-ui/react";
+import { SettingsIcon, InfoIcon } from "@chakra-ui/icons";
 
 interface CorsSettingsProps {
   onSettingsChange?: (settings: CorsSettings) => void;
@@ -55,8 +55,12 @@ export const CorsSettings = ({ onSettingsChange }: CorsSettingsProps) => {
         onClick={onOpen}
         variant="ghost"
         size="sm"
+        color="neutral.700"
+        _hover={{ bg: "neutral.100" }}
+        cursor="pointer"
+        transition="background-color 0.2s ease"
       >
-        CORS Settings
+        CORS help
       </Button>
 
       <Modal isOpen={isOpen} onClose={onClose} size="xl">
@@ -65,77 +69,91 @@ export const CorsSettings = ({ onSettingsChange }: CorsSettingsProps) => {
           <ModalHeader>
             <HStack>
               <SettingsIcon />
-              <Text>CORS 繞過設定</Text>
+              <Text>CORS and local development</Text>
             </HStack>
           </ModalHeader>
           <ModalCloseButton />
-          
+
           <ModalBody>
             <VStack spacing={6}>
               <Alert status="info">
                 <AlertIcon />
                 <Box>
-                  <Text fontWeight="bold">關於 CORS</Text>
-                  <Text fontSize="sm">
-                    CORS (跨域資源共享) 是瀏覽器的安全功能，限制不同域名之間的 HTTP 請求。以下提供多種繞過方法。
+                  <Text fontWeight="bold">About CORS</Text>
+                  <Text fontSize="sm" mt={1}>
+                    Browsers block cross-origin requests unless the API sends permissive CORS headers.
+                    Use a dev proxy or configure <Code fontSize="xs">CORS_ORIGIN</Code> on the server.
                   </Text>
                 </Box>
               </Alert>
 
-              {/* Development Proxy */}
-              <Box w="100%" p={4} border="1px" borderColor="gray.200" rounded="md">
+              <Box w="100%" p={4} border="1px" borderColor="neutral.200" rounded="md">
                 <HStack justify="space-between" mb={3}>
                   <Box>
-                    <Heading size="sm" mb={1}>開發代理 (推薦)</Heading>
-                    <Text fontSize="sm" color="gray.600">在開發環境使用 Vite 代理自動處理 CORS</Text>
+                    <Heading size="sm" mb={1}>
+                      Vite dev proxy (recommended)
+                    </Heading>
+                    <Text fontSize="sm" color="neutral.600">
+                      Requests to <Code fontSize="xs">/api</Code> are forwarded by{" "}
+                      <Code fontSize="xs">vite.config.ts</Code> so the browser stays same-origin.
+                    </Text>
                   </Box>
                   <Switch
                     isChecked={settings.useProxy}
-                    onChange={(e) => handleSettingChange('useProxy', e.target.checked)}
+                    onChange={(e) => handleSettingChange("useProxy", e.target.checked)}
                     colorScheme="brand"
                   />
                 </HStack>
                 {settings.useProxy && (
-                  <Box p={3} bg="green.50" rounded="md">
-                    <Text color="green.700" fontSize="sm">
-                      ✅ 已啟用 - 所有 API 請求將通過 Vite 代理處理
+                  <Box p={3} bg="neutral.100" rounded="md">
+                    <Text color="neutral.800" fontSize="sm">
+                      When the saved server host matches the proxy target, the app uses <Code fontSize="xs">/api</Code>{" "}
+                      automatically in development.
                     </Text>
                   </Box>
                 )}
               </Box>
 
-              {/* Public CORS Proxy */}
-              <Box w="100%" p={4} border="1px" borderColor="gray.200" rounded="md">
+              <Box w="100%" p={4} border="1px" borderColor="neutral.200" rounded="md">
                 <HStack justify="space-between" mb={3}>
                   <Box>
-                    <Heading size="sm" mb={1}>公共 CORS 代理</Heading>
-                    <Text fontSize="sm" color="gray.600">使用第三方 CORS 代理服務 (不建議生產環境)</Text>
+                    <Heading size="sm" mb={1}>
+                      Public CORS proxy
+                    </Heading>
+                    <Text fontSize="sm" color="neutral.600">
+                      Third-party proxies are risky for production and credentials. Avoid when possible.
+                    </Text>
                   </Box>
                   <Switch
                     isChecked={settings.useCorsAnywhere}
-                    onChange={(e) => handleSettingChange('useCorsAnywhere', e.target.checked)}
+                    onChange={(e) => handleSettingChange("useCorsAnywhere", e.target.checked)}
                     colorScheme="yellow"
                   />
                 </HStack>
                 {settings.useCorsAnywhere && (
                   <Box p={3} bg="yellow.50" rounded="md">
-                    <Text color="yellow.700" fontSize="sm">
-                      ⚠️ 已啟用 - 請注意這可能會影響性能和安全性
+                    <Text color="yellow.900" fontSize="sm">
+                      Only use for quick experiments. Do not send secrets you cannot rotate.
                     </Text>
                   </Box>
                 )}
               </Box>
 
-              {/* Browser Instructions */}
-              <Box w="100%" p={4} border="1px" borderColor="gray.200" rounded="md">
+              <Box w="100%" p={4} border="1px" borderColor="neutral.200" rounded="md">
                 <HStack justify="space-between" mb={3}>
                   <Box>
-                    <Heading size="sm" mb={1}>瀏覽器設定說明</Heading>
-                    <Text fontSize="sm" color="gray.600">顯示如何在瀏覽器中完全禁用 CORS</Text>
+                    <Heading size="sm" mb={1}>
+                      Browser-only workarounds
+                    </Heading>
+                    <Text fontSize="sm" color="neutral.600">
+                      For local debugging only. Never rely on disabled security in production.
+                    </Text>
                   </Box>
                   <Switch
                     isChecked={settings.showBrowserInstructions}
-                    onChange={(e) => handleSettingChange('showBrowserInstructions', e.target.checked)}
+                    onChange={(e) =>
+                      handleSettingChange("showBrowserInstructions", e.target.checked)
+                    }
                     colorScheme="orange"
                   />
                 </HStack>
@@ -145,52 +163,56 @@ export const CorsSettings = ({ onSettingsChange }: CorsSettingsProps) => {
                 <Alert status="warning">
                   <AlertIcon />
                   <Box>
-                    <Text fontWeight="bold" mb={2}>瀏覽器 CORS 禁用方法</Text>
+                    <Text fontWeight="bold" mb={2}>
+                      Disabling CORS in the browser
+                    </Text>
                     <VStack align="start" spacing={3}>
                       <Box>
-                        <Text fontWeight="semibold">Chrome:</Text>
-                        <Text fontSize="sm">使用命令列啟動：</Text>
-                        <Code fontSize="xs" p={2} display="block" mt={1}>
-                          chrome --user-data-dir=/tmp/chrome_temp --disable-web-security --disable-features=VizDisplayCompositor
-                        </Code>
-                      </Box>
-                      
-                      <Box>
-                        <Text fontWeight="semibold">Firefox:</Text>
-                        <Text fontSize="sm">在位址列輸入 about:config，設定：</Text>
-                        <Code fontSize="xs" p={2} display="block" mt={1}>
-                          security.fileuri.strict_origin_policy = false
+                        <Text fontWeight="semibold">Chrome</Text>
+                        <Text fontSize="sm">Launch with a separate user data dir and flags (dev only):</Text>
+                        <Code fontSize="xs" p={2} display="block" mt={1} whiteSpace="pre-wrap">
+                          chrome --user-data-dir=/tmp/chrome_dev --disable-web-security
                         </Code>
                       </Box>
 
                       <Box>
-                        <Text fontWeight="semibold">瀏覽器擴展:</Text>
-                        <Text fontSize="sm">安裝 "CORS Unblock" 或 "Disable CORS" 擴展</Text>
+                        <Text fontWeight="semibold">Firefox</Text>
+                        <Text fontSize="sm">
+                          Advanced users may adjust <Code fontSize="xs">about:config</Code> for local testing only.
+                        </Text>
                       </Box>
                     </VStack>
                   </Box>
                 </Alert>
               )}
 
-              <Divider />
+              <Divider borderColor="neutral.200" />
 
               <Box w="100%">
                 <HStack mb={4}>
-                  <InfoIcon color="blue.500" />
-                  <Heading size="sm">當前狀態</Heading>
+                  <InfoIcon color="brand.600" />
+                  <Heading size="sm">Summary</Heading>
                 </HStack>
-                
+
                 <Grid templateColumns="repeat(2, 1fr)" gap={4}>
                   <GridItem>
-                    <Box p={3} bg="blue.50" rounded="md">
-                      <Text fontWeight="bold" fontSize="sm">開發環境:</Text>
-                      <Text fontSize="sm">使用 Vite 代理 (推薦)</Text>
+                    <Box p={3} bg="neutral.100" rounded="md">
+                      <Text fontWeight="bold" fontSize="sm">
+                        Development
+                      </Text>
+                      <Text fontSize="sm" color="neutral.700">
+                        Prefer the Vite proxy and the default Gammon host, or set a custom URL and fix CORS on the API.
+                      </Text>
                     </Box>
                   </GridItem>
                   <GridItem>
-                    <Box p={3} bg="gray.50" rounded="md">
-                      <Text fontWeight="bold" fontSize="sm">生產環境:</Text>
-                      <Text fontSize="sm">需要後端設定 CORS 標頭</Text>
+                    <Box p={3} bg="neutral.100" rounded="md">
+                      <Text fontWeight="bold" fontSize="sm">
+                        Production
+                      </Text>
+                      <Text fontSize="sm" color="neutral.700">
+                        Host the admin on an origin allowed by <Code fontSize="xs">CORS_ORIGIN</Code> on CodePush.
+                      </Text>
                     </Box>
                   </GridItem>
                 </Grid>
@@ -199,8 +221,8 @@ export const CorsSettings = ({ onSettingsChange }: CorsSettingsProps) => {
           </ModalBody>
 
           <ModalFooter>
-            <Button colorScheme="brand" onClick={onClose}>
-              確定
+            <Button bg="brand.500" color="neutral.900" _hover={{ bg: "brand.400" }} onClick={onClose}>
+              Close
             </Button>
           </ModalFooter>
         </ModalContent>
