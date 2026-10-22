@@ -17,6 +17,10 @@
     "type": "git",
     "url": "https://github.com/microsoft/code-push-server"
   },
+  "engines": {
+    "node": "^22.23.4 || ^24.22.1 || >=26.12.1",
+    "npm": ">=9.0.0"
+  },
   "author": "Microsoft",
   "dependencies": {
     "backslash": "^0.2.0",
