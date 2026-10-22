@@ -1,16 +1,23 @@
-import axios from 'axios';
+import axios from "axios";
+import { resolveCodePushBaseURL } from "./serverUrl";
+
+declare module "axios" {
+  export interface AxiosRequestConfig {
+    skipAuthRedirect?: boolean;
+  }
+}
 
 export const http = axios.create({
-  // 在開發模式使用代理路徑，生產模式使用實際 API URL
-  baseURL: import.meta.env.DEV ? '/api' : (import.meta.env.VITE_API_URL || 'http://localhost:3000'),
+  baseURL: resolveCodePushBaseURL(),
   headers: {
-    Accept: 'application/vnd.code-push.v2+json',
+    Accept: "application/vnd.code-push.v2+json",
   },
   withCredentials: true,
 });
 
 http.interceptors.request.use((config) => {
-  const token = localStorage.getItem('accessKey');
+  config.baseURL = resolveCodePushBaseURL();
+  const token = localStorage.getItem("accessKey");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -20,10 +27,11 @@ http.interceptors.request.use((config) => {
 http.interceptors.response.use(
   (response) => response,
   (error) => {
-    // 處理 401 未授權錯誤
     if (error.response?.status === 401) {
-      localStorage.removeItem('accessKey');
-      window.location.href = '/auth';
+      localStorage.removeItem("accessKey");
+      if (!error.config?.skipAuthRedirect) {
+        window.location.href = "/auth";
+      }
     }
     return Promise.reject(error);
   }
