@@ -18,6 +18,12 @@ For detailed information about the CodePush server, including installation instr
 The CodePush CLI, located in `cli` subdirectory, is a command-line tool that allows developers to interact with the CodePush server. For detailed information about the CodePush CLI, including installation instructions and usage details, please refer to the [CodePush CLI README](./cli/README.md).
 
 
+## AKS and admin workspace
+
+The admin workspace runs at `/admin` with automatic Microsoft Entra/MSAL sign-in. It includes download/install telemetry, applications, release uploads, rollout controls, promotion, rollback, collaborators, and access tokens.
+
+[AKS deployment guide](./deploy/README.md) covers separate UAT/prod environments in namespace `code-push`, one API pod and one app pod per environment, container builds, and the GitHub Actions image deployment pipeline. Existing SDK routes and legacy access-key/CLI authentication remain available.
+
 ## Contributing
 
 While we cannot accept contributions or issues in this repository; however, as a permissively licensed open-source project, it is ready for community development and forks independently.

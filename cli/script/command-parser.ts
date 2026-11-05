@@ -428,9 +428,11 @@ yargs
     isValidCommandCategory = true;
     isValidCommand = true;
     yargs
-      .usage(USAGE_PREFIX + " login [options]")
+      .usage(USAGE_PREFIX + " login [serverUrl] [options]")
       .demand(/*count*/ 0, /*max*/ 1) //set 'max' to one to allow usage of serverUrl undocument parameter for testing
       .example("login", "Logs in to the CodePush server")
+      .example("login https://codepush.example.com --device-code", "Signs in with Microsoft Entra ID and saves a CodePush session")
+      .option("device-code", { type: "boolean", default: false, description: "Sign in using Microsoft Entra device code flow" })
       .example("login --accessKey mykey", 'Logs in on behalf of the user who owns and created the access key "mykey"')
       .option("accessKey", {
         alias: "key",
@@ -1137,6 +1139,7 @@ export function createCommand(): cli.ICommand {
         const loginCommand = <cli.ILoginCommand>cmd;
 
         loginCommand.serverUrl = getServerUrl(arg1);
+        loginCommand.deviceCode = !!argv["device-code"];
         loginCommand.accessKey = argv["accessKey"] as any;
         break;
 

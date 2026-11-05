@@ -835,3 +835,20 @@ Replace the placeholder with the actual contents of your `public.pem` file.
     ```
 
 Replace the placeholder with the actual contents of your `public.pem` file.
+## Microsoft Entra sign-in on the standalone AKS server
+
+```bash
+code-push-standalone login https://<environment-host> --device-code
+```
+
+Follow the Microsoft device-code instructions shown by the CLI. The CLI discovers public MSAL configuration, signs in with the API's delegated scope, exchanges the Entra token at `POST /auth/token`, and saves a standard CodePush session. It does not print or require copying the session token. Device-code/public client flows must be enabled on the configured CLI registration.
+
+Existing browser login and `login https://<environment-host> --accessKey "$CODEPUSH_ACCESS_KEY"` remain available. Personal access tokens created at `/admin/access-keys` support unattended release jobs. Use the environment origin without `/admin`. See [AKS and Entra setup](../deploy/README.md).
+
+After signing in, create an automation token directly from the CLI:
+
+```bash
+code-push-standalone access-key add release-pipeline --ttl 30d
+```
+
+This prints the new access key once. Store it as a pipeline secret and use it with `login --accessKey`.

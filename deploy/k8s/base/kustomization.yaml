@@ -1,0 +1,27 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: code-push
+configurations:
+  - namereferences.yaml
+resources:
+  - api.yaml
+  - app.yaml
+  - route.yaml
+configMapGenerator:
+  - name: codepush-config
+    literals:
+      - NODE_ENV=production
+      - API_PORT=3000
+      - DEBUG_DISABLE_AUTH=false
+      - ENABLE_ACCOUNT_REGISTRATION=false
+      - TRUST_PROXY_HOPS=1
+      - REDIS_PORT=6380
+      - UPLOAD_SIZE_LIMIT_MB=200
+      - SERVER_URL=https://${PUBLIC_HOST}
+      - CORS_ORIGIN=https://${PUBLIC_HOST}
+      - MSAL_CLIENT_ID=${MSAL_CLIENT_ID}
+      - MSAL_CLI_CLIENT_ID=${MSAL_CLI_CLIENT_ID}
+      - MSAL_TENANT_ID=${MSAL_TENANT_ID}
+      - MSAL_API_AUDIENCE=${MSAL_API_AUDIENCE}
+      - MSAL_API_SCOPE=${MSAL_API_SCOPE}
+      - MSAL_REQUIRED_ROLE=${MSAL_REQUIRED_ROLE}

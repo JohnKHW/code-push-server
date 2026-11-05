@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 import * as api from "./api";
+import { getMsalAuthenticationRouter } from "./routes/msal-authentication";
 import { AzureStorage } from "./storage/azure-storage";
 import { fileUploadMiddleware } from "./file-upload-manager";
 import { JsonStorage } from "./storage/json-storage";
@@ -60,6 +61,13 @@ export function start(done: (err?: any, server?: express.Express, storage?: Stor
     })
     .then(() => {
       const app = express();
+      // Explicitly opt in when running behind the AKS ingress; keep existing hosts unchanged.
+      if (process.env.TRUST_PROXY_HOPS) {
+        const hops = Number(process.env.TRUST_PROXY_HOPS);
+        if (!Number.isInteger(hops) || hops < 1) throw new Error("TRUST_PROXY_HOPS must be a positive integer");
+        app.set("trust proxy", hops);
+      }
+      app.get("/health/live", (_req, res) => res.sendStatus(200));
       const auth = api.auth({ storage: storage });
       const appInsights = api.appInsights();
       const redisManager = new RedisManager();
@@ -139,6 +147,7 @@ export function start(done: (err?: any, server?: express.Express, storage?: Stor
       }
 
       if (process.env.DISABLE_MANAGEMENT !== "true") {
+        app.use(getMsalAuthenticationRouter(storage));
         if (process.env.DEBUG_DISABLE_AUTH === "true") {
           app.use((req, res, next) => {
             let userId: string = "default";

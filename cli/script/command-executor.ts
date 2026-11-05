@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 import AccountManager = require("./management-sdk");
+import { acquireMsalSession } from "./msal-login";
 const childProcess = require("child_process");
 import debugCommand from "./commands/debug";
 import * as fs from "fs";
@@ -589,6 +590,17 @@ function link(command: cli.ILinkCommand): Promise<void> {
 }
 
 function login(command: cli.ILoginCommand): Promise<void> {
+  if (command.deviceCode) {
+    if (command.accessKey) throw new Error("Choose either --device-code or --accessKey.");
+    return Q(acquireMsalSession(command.serverUrl || AccountManager.SERVER_URL, log)).then((accessKey: string) => {
+      sdk = getSdk(accessKey, CLI_HEADERS, command.serverUrl);
+      return sdk.isAuthenticated().then((authenticated: boolean) => {
+        if (!authenticated) throw new Error("The CodePush session could not be verified.");
+        serializeConnectionInfo(accessKey, false, command.serverUrl);
+        log("Signed in to CodePush with Microsoft Entra ID.");
+      });
+    });
+  }
   // Check if one of the flags were provided.
   if (command.accessKey) {
     sdk = getSdk(command.accessKey, CLI_HEADERS, command.serverUrl);

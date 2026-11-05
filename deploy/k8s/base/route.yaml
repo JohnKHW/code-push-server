@@ -1,0 +1,29 @@
+# Attach to a platform-managed HTTPS Gateway. Routing adds no CodePush pods.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: codepush
+spec:
+  parentRefs:
+    - name: ${GATEWAY_NAME}
+      namespace: ${GATEWAY_NAMESPACE}
+      sectionName: ${GATEWAY_LISTENER}
+  hostnames: ["${PUBLIC_HOST}"]
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /admin
+      backendRefs:
+        - name: codepush-app
+          port: 8080
+    # No rewriting: existing SDK, management and OAuth paths remain identical.
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      timeouts:
+        request: 600s
+      backendRefs:
+        - name: codepush-api
+          port: 3000

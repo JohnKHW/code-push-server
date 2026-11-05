@@ -85,3 +85,21 @@ To enable KeyVault credential resolution, set:
 - `CLIENT_ID`: The client ID of an Active Directory app that has access to your KeyVault account
 - `CERTIFICATE_THUMBPRINT`: The thumbprint of the certificate associated with your Active Directory app (for which a .pfx has been uploaded to your certificate store)
 - `REFRESH_CREDENTIALS_INTERVAL` (Optional): The frequency, in milliseconds, to re-retrieve credentials from Key Vault (defaults to one day, currently only storage keys are supported)
+
+## Admin MSAL token exchange (optional, additive)
+
+When all `MSAL_*` variables are absent, the new exchange routes are disabled and legacy authentication is unchanged. A partial configuration fails startup.
+
+- `MSAL_CLIENT_ID`: Admin SPA registration client GUID.
+- `MSAL_CLI_CLIENT_ID`: CLI public client GUID (defaults to SPA client ID).
+- `MSAL_TENANT_ID`: Concrete Entra tenant GUID.
+- `MSAL_API_AUDIENCE`: Expected API audience for v2 access tokens.
+- `MSAL_API_SCOPE`: Full delegated scope URI, e.g. `api://<api-id>/access_as_user`.
+- `MSAL_REQUIRED_ROLE`: Optional API user app role required to exchange a token.
+- `MSAL_SESSION_TTL_SECONDS`: CodePush session lifetime, default 28800 seconds (8 hours).
+- `DEPLOYMENT_ENVIRONMENT`: Public environment label (`uat`, `prod`, or local).
+- `TRUST_PROXY_HOPS`: Optional positive number of trusted proxy hops; set only for the actual trusted reverse proxy chain.
+
+`GET /auth/msal/config` returns public browser/CLI authentication configuration. `POST /auth/token` accepts a delegated Entra API token in `Authorization: Bearer ...` and optional `{ "hostname": "machine-name" }`, returning `{ accessToken, tokenType, expiresAt, expiresIn }`. The returned token is a standard CodePush key for existing management routes. Account registration follows `ENABLE_ACCOUNT_REGISTRATION`; existing account links must match the verified immutable Entra identity. See [the deployment guide](../deploy/README.md) before configuring registrations or migrating existing accounts.
+
+`GET /health/live` is a process probe. Existing `/health` continues to check Storage and Redis.

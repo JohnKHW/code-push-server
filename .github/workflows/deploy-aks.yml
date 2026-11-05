@@ -1,0 +1,128 @@
+name: Build and deploy CodePush to AKS
+on:
+  push:
+    branches: [main]
+    paths: ["api/**", "app/**", "deploy/**", ".github/workflows/deploy-aks.yml"]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Deployment environment
+        type: choice
+        options: [uat, prod]
+        default: uat
+        required: true
+      image_tag:
+        description: Existing full commit SHA to promote (leave empty to build this commit)
+        type: string
+        required: false
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: codepush-${{ inputs.environment || 'uat' }}
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment || 'uat' }}
+    env:
+      DEPLOY_ENV: ${{ inputs.environment || 'uat' }}
+      IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
+      ACR_NAME: ${{ vars.ACR_NAME }}
+      AKS_RESOURCE_GROUP: ${{ vars.AKS_RESOURCE_GROUP }}
+      AKS_CLUSTER_NAME: ${{ vars.AKS_CLUSTER_NAME }}
+      PUBLIC_HOST: ${{ vars.PUBLIC_HOST }}
+      GATEWAY_NAME: ${{ vars.GATEWAY_NAME }}
+      GATEWAY_NAMESPACE: ${{ vars.GATEWAY_NAMESPACE }}
+      GATEWAY_LISTENER: ${{ vars.GATEWAY_LISTENER }}
+      MSAL_CLIENT_ID: ${{ vars.MSAL_CLIENT_ID }}
+      MSAL_CLI_CLIENT_ID: ${{ vars.MSAL_CLI_CLIENT_ID }}
+      MSAL_TENANT_ID: ${{ vars.MSAL_TENANT_ID }}
+      MSAL_API_AUDIENCE: ${{ vars.MSAL_API_AUDIENCE }}
+      MSAL_API_SCOPE: ${{ vars.MSAL_API_SCOPE }}
+      MSAL_REQUIRED_ROLE: ${{ vars.MSAL_REQUIRED_ROLE }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate release selection
+        shell: bash
+        run: |
+          [[ "$IMAGE_TAG" =~ ^[a-f0-9]{40}$ ]] || { echo 'Use a full commit SHA as the image tag'; exit 1; }
+          for name in ACR_NAME AKS_RESOURCE_GROUP AKS_CLUSTER_NAME PUBLIC_HOST GATEWAY_NAME GATEWAY_NAMESPACE MSAL_CLIENT_ID MSAL_TENANT_ID MSAL_API_AUDIENCE MSAL_API_SCOPE; do
+            test -n "${!name}" || { echo "Missing environment variable: $name"; exit 1; }
+          done
+      - name: Sign in to Azure using workload federation
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Connect to ACR
+        shell: bash
+        run: |
+          az acr login --name "$ACR_NAME"
+          echo "REGISTRY=$(az acr show --name "$ACR_NAME" --query loginServer -o tsv)" >> "$GITHUB_ENV"
+      - uses: docker/setup-buildx-action@v3
+        if: ${{ !inputs.image_tag }}
+      - name: Build and push API image
+        if: ${{ !inputs.image_tag }}
+        uses: docker/build-push-action@v6
+        with:
+          context: ./api
+          push: true
+          tags: ${{ env.REGISTRY }}/codepush-api:${{ env.IMAGE_TAG }}
+          platforms: linux/amd64
+          cache-from: type=gha,scope=codepush-api
+          cache-to: type=gha,scope=codepush-api,mode=max
+      - name: Build and push app image
+        if: ${{ !inputs.image_tag }}
+        uses: docker/build-push-action@v6
+        with:
+          context: ./app
+          push: true
+          tags: ${{ env.REGISTRY }}/codepush-app:${{ env.IMAGE_TAG }}
+          platforms: linux/amd64
+          cache-from: type=gha,scope=codepush-app
+          cache-to: type=gha,scope=codepush-app,mode=max
+      - name: Resolve immutable image digests
+        shell: bash
+        run: |
+          API_DIGEST=$(az acr repository show --name "$ACR_NAME" --image "codepush-api:$IMAGE_TAG" --query digest -o tsv)
+          APP_DIGEST=$(az acr repository show --name "$ACR_NAME" --image "codepush-app:$IMAGE_TAG" --query digest -o tsv)
+          echo "API_IMAGE=$REGISTRY/codepush-api@$API_DIGEST" >> "$GITHUB_ENV"
+          echo "APP_IMAGE=$REGISTRY/codepush-app@$APP_DIGEST" >> "$GITHUB_ENV"
+      - name: Connect to AKS
+        shell: bash
+        run: |
+          az aks install-cli --install-location "$RUNNER_TEMP/kubectl" --kubelogin-install-location "$RUNNER_TEMP/kubelogin"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+          export PATH="$RUNNER_TEMP:$PATH"
+          az aks get-credentials --resource-group "$AKS_RESOURCE_GROUP" --name "$AKS_CLUSTER_NAME" --overwrite-existing
+          kubelogin convert-kubeconfig -l azurecli
+      - name: Check environment dependencies and render manifests
+        shell: bash
+        run: |
+          kubectl create namespace code-push --dry-run=client -o yaml | kubectl apply -f -
+          kubectl get secret "$DEPLOY_ENV-codepush-secrets" -n code-push
+          kubectl get gateways.gateway.networking.k8s.io "$GATEWAY_NAME" -n "$GATEWAY_NAMESPACE"
+          bash deploy/render.sh "$DEPLOY_ENV" > "$RUNNER_TEMP/codepush.yaml"
+          kubectl apply --dry-run=server -f "$RUNNER_TEMP/codepush.yaml"
+      - name: Update API and app images
+        shell: bash
+        run: |
+          kubectl apply -f "$RUNNER_TEMP/codepush.yaml"
+          kubectl rollout status deployment/"$DEPLOY_ENV-codepush-api" -n code-push --timeout=300s
+          kubectl rollout status deployment/"$DEPLOY_ENV-codepush-app" -n code-push --timeout=180s
+          kubectl wait --for='jsonpath={.status.parents[0].conditions[?(@.type=="Accepted")].status}=True' httproute/"$DEPLOY_ENV-codepush" -n code-push --timeout=120s
+          kubectl wait --for='jsonpath={.status.parents[0].conditions[?(@.type=="ResolvedRefs")].status}=True' httproute/"$DEPLOY_ENV-codepush" -n code-push --timeout=120s
+      - name: Verify public API and admin
+        shell: bash
+        run: |
+          curl --fail --silent --show-error --retry 12 --retry-all-errors --retry-delay 5 "https://$PUBLIC_HOST/health"
+          curl --fail --silent --show-error --retry 12 --retry-all-errors --retry-delay 5 "https://$PUBLIC_HOST/admin/" --output /dev/null
+          {
+            echo "### CodePush $DEPLOY_ENV deployed"
+            echo "- Release: \`$IMAGE_TAG\`"
+            echo "- API: \`$API_IMAGE\`"
+            echo "- App: \`$APP_IMAGE\`"
+            echo "- Admin: https://$PUBLIC_HOST/admin/"
+          } >> "$GITHUB_STEP_SUMMARY"

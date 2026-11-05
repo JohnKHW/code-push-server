@@ -23,6 +23,7 @@
   },
   "author": "Microsoft",
   "dependencies": {
+    "@azure/msal-node": "^3.8.10",
     "backslash": "^0.2.0",
     "chalk": "^4.1.2",
     "cli-table": "^0.3.11",

@@ -145,6 +145,7 @@ export interface ILinkCommand extends ICommand {
 }
 
 export interface ILoginCommand extends ICommand {
+  deviceCode?: boolean;
   serverUrl?: string;
   accessKey: string;
 }

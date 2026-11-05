@@ -1,37 +1,35 @@
 import axios from "axios";
-import { resolveCodePushBaseURL } from "./serverUrl";
-
+import { readSession, clearSession } from "./session";
 declare module "axios" {
-  export interface AxiosRequestConfig {
-    skipAuthRedirect?: boolean;
+  interface AxiosRequestConfig {
+    skipSessionRefresh?: boolean;
   }
 }
-
 export const http = axios.create({
-  baseURL: resolveCodePushBaseURL(),
-  headers: {
-    Accept: "application/vnd.code-push.v2+json",
-  },
-  withCredentials: true,
+  baseURL: import.meta.env.DEV ? "/api" : "/",
+  headers: { Accept: "application/vnd.code-push.v2+json" },
+  timeout: 30000,
 });
-
 http.interceptors.request.use((config) => {
-  config.baseURL = resolveCodePushBaseURL();
-  const token = localStorage.getItem("accessKey");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
+  const session = readSession();
+  if (session && !config.headers.Authorization)
+    config.headers.Authorization = `Bearer ${session.token}`;
   return config;
 });
-
 http.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem("accessKey");
-      if (!error.config?.skipAuthRedirect) {
-        window.location.href = "/auth";
-      }
+  (error: unknown) => {
+    if (
+      axios.isAxiosError(error) &&
+      error.response?.status === 401 &&
+      !error.config?.skipSessionRefresh &&
+      !error.config?.url?.startsWith("/auth/") &&
+      (!readSession(0) ||
+        error.config?.headers.Authorization ===
+          `Bearer ${readSession(0)?.token}`)
+    ) {
+      clearSession();
+      window.dispatchEvent(new Event("codepush:unauthorized"));
     }
     return Promise.reject(error);
   }
