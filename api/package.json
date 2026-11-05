@@ -10,7 +10,11 @@
     "build": "tsc && shx cp -r ./script/views ./bin/script",
     "prettier": "prettier --write \"./**/*.ts\"",
     "lint": "npx eslint ./script/**/*.ts",
-    "lint:fix": "npx eslint ./script/**/*.ts --fix"
+    "lint:fix": "npx eslint ./script/**/*.ts --fix",
+    "local:setup": "node ../deploy/local/setup.mjs",
+    "start:local": "node ../deploy/local/start-api.mjs",
+    "dev:local": "npm run build && npm run start:local",
+    "local:stop": "docker compose -f ../deploy/local/compose.yaml down"
   },
   "repository": {
     "type": "git",

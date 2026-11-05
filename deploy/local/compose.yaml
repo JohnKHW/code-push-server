@@ -1,0 +1,51 @@
+name: codepush-local
+services:
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:3.35.0
+    command:
+      - azurite
+      - --blobHost
+      - 0.0.0.0
+      - --queueHost
+      - 0.0.0.0
+      - --tableHost
+      - 0.0.0.0
+      - --location
+      - /data
+      - --skipApiVersionCheck
+      - --disableTelemetry
+    ports:
+      - "127.0.0.1:10000:10000"
+      - "127.0.0.1:10001:10001"
+      - "127.0.0.1:10002:10002"
+    volumes:
+      - ../../.local/data/azurite:/data
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "const net = require('net'); Promise.all([10000,10001,10002].map(port => new Promise((resolve,reject) => { const socket = net.connect(port,'127.0.0.1',() => { socket.destroy(); resolve(); }); socket.on('error',reject); }))).then(() => process.exit(0),() => process.exit(1));"
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  redis:
+    image: redis:7.4-alpine
+    command: [redis-server, /usr/local/etc/redis/redis.conf]
+    ports:
+      - "127.0.0.1:6380:6380"
+    volumes:
+      - ../../.local/data/redis:/data
+      - ../../.local/redis.conf:/usr/local/etc/redis/redis.conf:ro
+      - ../../.local/certs/ca.crt:/tls/ca.crt:ro
+      - ../../.local/certs/redis.crt:/tls/redis.crt:ro
+      - ../../.local/certs/redis.key:/tls/redis.key:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          REDISCLI_AUTH="$$(sed -n 's/^requirepass //p' /usr/local/etc/redis/redis.conf)"
+          redis-cli --tls --cacert /tls/ca.crt -h 127.0.0.1 -p 6380 ping | grep -qx PONG
+      interval: 3s
+      timeout: 3s
+      retries: 20

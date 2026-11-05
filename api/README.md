@@ -8,6 +8,8 @@ Please refer to [react-native-code-push](https://github.com/microsoft/react-nati
 
 ### Local
 
+For a ready-to-run local setup with file persistence, Redis telemetry, and admin sign-in configuration, use the [local development guide](../deploy/local/README.md).
+
 #### Prerequisites
 
 The CodePush Server requires Azure Blob Storage to operate. For the local setup, there is an option to use emulated local storage with Azurite. 

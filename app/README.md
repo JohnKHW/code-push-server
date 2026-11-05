@@ -6,6 +6,8 @@ The workspace includes real delivery telemetry, applications, release uploads, r
 
 ## Develop
 
+For a complete local API/storage/Redis setup, follow the [local development guide](../deploy/local/README.md).
+
 ```bash
 cd app
 npm ci

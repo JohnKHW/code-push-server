@@ -1,5 +1,7 @@
 # CodePush on AKS
 
+For local development with file-backed storage, see the [local development guide](./local/README.md).
+
 ## Topology and compatibility
 
 All application resources use namespace `code-push`.

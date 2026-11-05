@@ -103,3 +103,7 @@ When all `MSAL_*` variables are absent, the new exchange routes are disabled and
 `GET /auth/msal/config` returns public browser/CLI authentication configuration. `POST /auth/token` accepts a delegated Entra API token in `Authorization: Bearer ...` and optional `{ "hostname": "machine-name" }`, returning `{ accessToken, tokenType, expiresAt, expiresIn }`. The returned token is a standard CodePush key for existing management routes. Account registration follows `ENABLE_ACCOUNT_REGISTRATION`; existing account links must match the verified immutable Entra identity. See [the deployment guide](../deploy/README.md) before configuring registrations or migrating existing accounts.
 
 `GET /health/live` is a process probe. Existing `/health` continues to check Storage and Redis.
+
+## Local file-backed setup
+
+Run `npm run local:setup` in `api` to generate `.local/api.env` and start Azurite plus TLS-enabled Redis. `npm run dev:local` builds and starts the API with that file. Storage and uploaded bundles persist under `.local/data/azurite`, and telemetry under `.local/data/redis`. No production storage settings or API routes change. See [the local guide](../deploy/local/README.md) for MSAL development settings, CLI access and mobile device downloads.
