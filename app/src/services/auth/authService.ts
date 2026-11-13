@@ -1,6 +1,8 @@
 import {
+  EventType,
   InteractionRequiredAuthError,
   PublicClientApplication,
+  type AuthenticationResult,
 } from "@azure/msal-browser";
 import { http } from "../../api/http";
 import { readSession, saveSession, clearSession } from "../../api/session";
@@ -17,30 +19,56 @@ class AuthService {
     return this.pending;
   }
   private async authorize(force: boolean): Promise<AuthConfig> {
-    if (!this.config)
+    const previousConfig = this.config;
+    if (!this.config || force)
       this.config = (await http.get<AuthConfig>("/auth/msal/config")).data;
     const config = this.config;
-    if (!this.client) {
+    if (
+      !this.client ||
+      previousConfig?.clientId !== config.clientId ||
+      previousConfig?.authority !== config.authority ||
+      previousConfig?.redirectPath !== config.redirectPath
+    ) {
       this.client = new PublicClientApplication({
         auth: {
           clientId: config.clientId,
           authority: config.authority,
-          redirectUri: `${window.location.origin}/admin/auth`,
+          redirectUri: `${window.location.origin}${
+            config.redirectPath || "/admin/auth"
+          }`,
           navigateToLoginRequestUrl: false,
-          postLogoutRedirectUri: `${window.location.origin}/admin/signed-out`,
+          postLogoutRedirectUri:
+            config.redirectPath === "/"
+              ? window.location.origin
+              : `${window.location.origin}/admin/signed-out`,
         },
         cache: { cacheLocation: "sessionStorage" },
       });
-      await this.client.initialize();
+      this.client.addEventCallback((event) => {
+        if (
+          event.eventType === EventType.LOGIN_SUCCESS ||
+          event.eventType === EventType.ACQUIRE_TOKEN_SUCCESS
+        ) {
+          const account = (event.payload as AuthenticationResult | null)
+            ?.account;
+          if (account) this.client?.setActiveAccount(account);
+        }
+      });
     }
+    await this.client.initialize();
     const result = await this.client.handleRedirectPromise();
-    if (result?.account) this.client.setActiveAccount(result.account);
+    if (result?.account) {
+      this.client.setActiveAccount(result.account);
+      sessionStorage.setItem("codepush.authReturned", "true");
+    }
     if (!force && !result && readSession()) return config;
     const account =
       this.client.getActiveAccount() || this.client.getAllAccounts()[0];
     if (!account) {
       this.rememberLocation();
-      await this.client.loginRedirect({ scopes: [config.scope] });
+      await this.client.loginRedirect({
+        scopes: ["openid", "profile", config.scope],
+      });
       throw new Error("Redirecting to Microsoft sign-in…");
     }
     this.client.setActiveAccount(account);
@@ -106,6 +134,8 @@ class AuthService {
       }
     }
     clearSession();
+    sessionStorage.removeItem("codepush.returnTo");
+    sessionStorage.setItem("codepush.signedOut", "true");
     if (this.client)
       await this.client.logoutRedirect({
         account: this.client.getActiveAccount(),

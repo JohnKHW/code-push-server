@@ -43,7 +43,7 @@ Use separate Entra registrations per environment where possible:
 
 The browser initializes MSAL, processes redirect responses and attempts silent token acquisition. It redirects to Microsoft automatically when interaction is needed; there is no initial login button. Denial/configuration errors stop and show a retry action. The browser exchanges the delegated Entra access token for a normal CodePush session, held in sessionStorage, and renews it as needed. Sign-out uses Entra logout. There is no browser client secret or arbitrary API-server selector.
 
-The exchange validates the signature, v2 issuer, tenant, audience, expiry, delegated scope, immutable object ID, and allowed SPA/CLI client IDs. App-only tokens and ID tokens are not accepted. Existing accounts must already link to the same Azure AD `oid` or the same API-audience `sub`; **email alone cannot link accounts**. Reuse the existing Azure AD/API registration when retaining subject-based legacy links. If a legacy subject differs after an app registration change, migrate the verified provider binding explicitly before cutover; do not overwrite identities based solely on email.
+The exchange validates the signature, tenant-specific v1/v2 issuer, configured audience allowlist, expiry, delegated scope, immutable object ID, and allowed SPA/CLI client IDs (`appid` for v1, `azp` for v2). App-only tokens and ID tokens are not accepted. Existing accounts must already link to the same Azure AD `oid` or the same API-audience `sub`; **email alone cannot link accounts**. Reuse the existing Azure AD/API registration when retaining subject-based legacy links. If a legacy subject differs after an app registration change, migrate the verified provider binding explicitly before cutover; do not overwrite identities based solely on email.
 
 `ENABLE_ACCOUNT_REGISTRATION=false` in the AKS configuration prevents unregistered accounts from being created. For a new installation, deliberately enable registration for initial assigned users, sign in, and then disable it again through your managed configuration. For an existing installation, preserve registered identities and provider bindings. Legacy OAuth credentials can remain in the environment Secret and legacy CLI login continues working.
 
@@ -81,9 +81,10 @@ Set these **environment variables** in GitHub:
 | `MSAL_CLIENT_ID` | SPA client ID |
 | `MSAL_CLI_CLIENT_ID` | CLI public client ID; defaults to SPA client ID |
 | `MSAL_TENANT_ID` | Tenant GUID |
-| `MSAL_API_AUDIENCE` | API token audience |
+| `MSAL_API_AUDIENCE` | Explicit API audience allowlist, comma-separated |
 | `MSAL_API_SCOPE` | Full delegated scope URI |
 | `MSAL_REQUIRED_ROLE` | Optional API user role |
+| `MSAL_REDIRECT_PATH` | SPA callback path; defaults to `/admin/auth` |
 
 The `Build and deploy CodePush to AKS` workflow builds both images on changes to `main` and deploys **UAT**. Manual runs select `uat` or `prod`. Supply `image_tag` with an existing full commit SHA to promote an already-built pair of images without rebuilding. Tags resolve to image digests before deployment. Protect release tags from overwrites using your registry policy and retain both images for rollback.
 

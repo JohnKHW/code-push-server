@@ -11,15 +11,17 @@ if len(sys.argv) != 2 or sys.argv[1] not in ("uat", "prod"):
     sys.exit("Usage: deploy/render.sh uat|prod")
 values = {name: os.environ.get(name, "") for name in (
     "PUBLIC_HOST", "API_IMAGE", "APP_IMAGE", "MSAL_CLIENT_ID", "MSAL_CLI_CLIENT_ID",
-    "MSAL_TENANT_ID", "MSAL_API_AUDIENCE", "MSAL_API_SCOPE", "MSAL_REQUIRED_ROLE",
+    "MSAL_TENANT_ID", "MSAL_API_AUDIENCE", "MSAL_API_SCOPE", "MSAL_REQUIRED_ROLE", "MSAL_REDIRECT_PATH",
     "GATEWAY_NAME", "GATEWAY_NAMESPACE", "GATEWAY_LISTENER",
 )}
 values["MSAL_CLI_CLIENT_ID"] = values["MSAL_CLI_CLIENT_ID"] or values["MSAL_CLIENT_ID"]
+values["MSAL_REDIRECT_PATH"] = values["MSAL_REDIRECT_PATH"] or "/admin/auth"
 values["GATEWAY_LISTENER"] = values["GATEWAY_LISTENER"] or "https"
 for name, value in values.items():
     if name == "MSAL_REQUIRED_ROLE" and not value:
         continue
-    if not value or not re.fullmatch(r"[a-zA-Z0-9_./:@+-]+", value):
+    pattern = r"[a-zA-Z0-9_./:@+,-]+" if name == "MSAL_API_AUDIENCE" else r"[a-zA-Z0-9_./:@+-]+"
+    if not value or not re.fullmatch(pattern, value):
         sys.exit(f"Set {name} to a valid public configuration value (no whitespace or YAML metacharacters).")
 for name in ("MSAL_CLIENT_ID", "MSAL_CLI_CLIENT_ID", "MSAL_TENANT_ID"):
     if not re.fullmatch(r"[a-fA-F0-9]{8}(?:-[a-fA-F0-9]{4}){3}-[a-fA-F0-9]{12}", values[name]):

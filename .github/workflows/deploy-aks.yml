@@ -41,6 +41,7 @@ jobs:
       MSAL_API_AUDIENCE: ${{ vars.MSAL_API_AUDIENCE }}
       MSAL_API_SCOPE: ${{ vars.MSAL_API_SCOPE }}
       MSAL_REQUIRED_ROLE: ${{ vars.MSAL_REQUIRED_ROLE }}
+      MSAL_REDIRECT_PATH: ${{ vars.MSAL_REDIRECT_PATH }}
     steps:
       - uses: actions/checkout@v4
       - name: Validate release selection

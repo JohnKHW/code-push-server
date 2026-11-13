@@ -3,6 +3,7 @@ export interface AuthConfig {
   cliClientId: string;
   authority: string;
   scope: string;
+  redirectPath?: "/" | "/admin/" | "/admin/auth";
   environment: string;
   metricsEnabled: boolean;
 }

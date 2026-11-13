@@ -88,19 +88,20 @@ To enable KeyVault credential resolution, set:
 
 ## Admin MSAL token exchange (optional, additive)
 
-When all `MSAL_*` variables are absent, the new exchange routes are disabled and legacy authentication is unchanged. A partial configuration fails startup.
+When the required `MSAL_*` variables are absent, the exchange is disabled and the public configuration endpoint returns a clear 503 configuration error. Legacy authentication is unchanged. A partial configuration fails startup.
 
 - `MSAL_CLIENT_ID`: Admin SPA registration client GUID.
 - `MSAL_CLI_CLIENT_ID`: CLI public client GUID (defaults to SPA client ID).
 - `MSAL_TENANT_ID`: Concrete Entra tenant GUID.
-- `MSAL_API_AUDIENCE`: Expected API audience for v2 access tokens.
+- `MSAL_API_AUDIENCE`: Explicit API audience allowlist (comma-separated). Use the API client GUID for v2 tokens, or its App ID URI for an existing v1 portal scope.
 - `MSAL_API_SCOPE`: Full delegated scope URI, e.g. `api://<api-id>/access_as_user`.
+- `MSAL_REDIRECT_PATH`: `/admin/auth` by default; `/` or `/admin/` can reuse an existing registered SPA callback. Only paths on the current browser origin are used.
 - `MSAL_REQUIRED_ROLE`: Optional API user app role required to exchange a token.
 - `MSAL_SESSION_TTL_SECONDS`: CodePush session lifetime, default 28800 seconds (8 hours).
 - `DEPLOYMENT_ENVIRONMENT`: Public environment label (`uat`, `prod`, or local).
 - `TRUST_PROXY_HOPS`: Optional positive number of trusted proxy hops; set only for the actual trusted reverse proxy chain.
 
-`GET /auth/msal/config` returns public browser/CLI authentication configuration. `POST /auth/token` accepts a delegated Entra API token in `Authorization: Bearer ...` and optional `{ "hostname": "machine-name" }`, returning `{ accessToken, tokenType, expiresAt, expiresIn }`. The returned token is a standard CodePush key for existing management routes. Account registration follows `ENABLE_ACCOUNT_REGISTRATION`; existing account links must match the verified immutable Entra identity. See [the deployment guide](../deploy/README.md) before configuring registrations or migrating existing accounts.
+`GET /auth/msal/config` returns public browser/CLI authentication configuration. `POST /auth/token` accepts a delegated Entra API token in `Authorization: Bearer ...` and optional `{ "hostname": "machine-name" }`, returning `{ accessToken, tokenType, expiresAt, expiresIn }`. Both v1 and v2 delegated Entra access tokens are validated against the configured tenant, audience, scope and SPA/CLI client IDs, including the appropriate issuer and `appid`/`azp` claims. The returned token is a standard CodePush key for existing management routes. Account registration follows `ENABLE_ACCOUNT_REGISTRATION`; existing account links must match the verified immutable Entra identity. See [the deployment guide](../deploy/README.md) before configuring registrations or migrating existing accounts.
 
 `GET /health/live` is a process probe. Existing `/health` continues to check Storage and Redis.
 

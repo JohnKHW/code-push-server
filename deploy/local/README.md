@@ -36,7 +36,7 @@ MSAL_API_AUDIENCE=<API registration client GUID>
 MSAL_API_SCOPE=api://<API registration client GUID>/access_as_user
 ```
 
-Register `http://localhost:4000/admin/auth` as a **SPA** redirect URI and configure the logout return URL for `http://localhost:4000/admin/signed-out`. The API registration must issue v2 access tokens. Grant the SPA permission to call the API scope and grant consent, as described in the [Entra setup guide](../README.md#microsoft-entra-configuration).
+Register `http://localhost:4000/admin/auth` as a **SPA** redirect URI and configure the logout return URL for `http://localhost:4000/admin/signed-out`. Dedicated API registrations can issue v2 access tokens. Existing portal scopes issuing v1 tokens also work when their App ID URI is explicitly set in `MSAL_API_AUDIENCE`. Grant the SPA permission to call the API scope and grant consent, as described in the [Entra setup guide](../README.md#microsoft-entra-configuration).
 
 For CLI device sign-in, add `MSAL_CLI_CLIENT_ID` if using a separate public client registration. Enable public client/device-code flows on that registration and grant it the same delegated API scope.
 
@@ -126,3 +126,13 @@ npm run local:stop
 Run `npm run local:setup` to restart the same data. To start with a completely empty local workspace, stop the services before deliberately removing `.local/data/`; this permanently removes only your local applications, packages and telemetry.
 
 References: [Azurite Docker persistence](https://learn.microsoft.com/en-us/azure/storage/common/storage-install-azurite), [Redis TLS](https://redis.io/docs/latest/operate/oss_and_stack/management/security/encryption/).
+
+## Auto-eForm Microsoft sign-in configuration
+
+The local configuration in this workspace reuses the public company tenant/client registration and delegated portal scope from `Auto-eForm/client/src/auth.ts` and its environment files. Only public client, tenant, audience and scope values are reused; no client secret, mailbox, database or workflow credential is imported.
+
+`MSAL_REDIRECT_PATH=/` uses the existing registered `http://localhost:8173` SPA root callback on the current local browser origin. Microsoft ignores the port when matching localhost redirect URIs, while the callback path must match. Vite forwards the root callback to `/admin/` with the response intact; the app then completes MSAL processing and opens the original admin page. Keep using `localhost`, rather than `127.0.0.1`, in the browser for this registration.
+
+For a production host, register its own SPA redirect URL and set `MSAL_REDIRECT_PATH` appropriately; the local callback does not authorize another hostname. The configured portal scope may issue v1 access tokens with `appid`/`upn` claims. CodePush validates the real Microsoft signature, tenant, issuer, audience, delegated scope and client application before issuing a CodePush key. Signature verification and CodePush account permissions remain enabled.
+
+If Microsoft requires an interactive sign-in or MFA, complete that Microsoft prompt; the CodePush page starts the redirect automatically and has no initial sign-in button. See [Microsoft redirect URI rules](https://learn.microsoft.com/en-us/entra/identity-platform/reply-url).

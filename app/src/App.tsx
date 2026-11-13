@@ -40,7 +40,11 @@ function AdminRoutes() {
   useEffect(() => {
     if (!authenticated) return;
     void fetchAccount();
-    if (location.pathname === "/auth") {
+    if (
+      location.pathname === "/auth" ||
+      sessionStorage.getItem("codepush.authReturned") === "true"
+    ) {
+      sessionStorage.removeItem("codepush.authReturned");
       const path = sessionStorage.getItem("codepush.returnTo");
       sessionStorage.removeItem("codepush.returnTo");
       navigate(

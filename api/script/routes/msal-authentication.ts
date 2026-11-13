@@ -7,19 +7,41 @@ import { generateSecureKey } from "../utils/security";
 
 export function getMsalAuthenticationRouter(store: storage.Storage): Router {
   const router = Router();
-  const clientId = process.env.MSAL_CLIENT_ID;
+  const clientId = process.env.MSAL_CLIENT_ID?.trim().toLowerCase();
   const tenantId = process.env.MSAL_TENANT_ID?.toLowerCase();
   const audience = process.env.MSAL_API_AUDIENCE;
-  const scope = process.env.MSAL_API_SCOPE;
-  if (!clientId && !tenantId && !audience && !scope) return router;
+  const audiences = (audience || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const scope = process.env.MSAL_API_SCOPE?.trim();
+  if (!clientId && !tenantId && !audience && !scope) {
+    router.get("/auth/msal/config", (_req, res) => {
+      res.setHeader("Cache-Control", "no-store");
+      res
+        .status(503)
+        .json({
+          message:
+            "Microsoft sign-in is not configured on this CodePush API. Configure the MSAL settings in the API environment and restart it.",
+        });
+    });
+    return router;
+  }
   const guid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (!guid.test(tenantId || "") || !guid.test(clientId || "") || !audience || !scope || !scope.includes("/")) {
+  if (!guid.test(tenantId || "") || !guid.test(clientId || "") || !audiences.length || !scope || !scope.includes("/")) {
     throw new Error("MSAL requires a tenant GUID, client GUID, API audience and full delegated API scope.");
   }
   const authority = `https://login.microsoftonline.com/${tenantId}`;
   const keys = createRemoteJWKSet(new URL(`${authority}/discovery/v2.0/keys`));
-  const cliClientId = process.env.MSAL_CLI_CLIENT_ID || clientId;
+  const cliClientId = (process.env.MSAL_CLI_CLIENT_ID || clientId).trim().toLowerCase();
+  if (!guid.test(cliClientId)) throw new Error("MSAL_CLI_CLIENT_ID must be a client GUID.");
   const allowedClients = new Set([clientId, cliClientId]);
+  const redirectPath = process.env.MSAL_REDIRECT_PATH || "/admin/auth";
+  if (!["/", "/admin/", "/admin/auth"].includes(redirectPath)) {
+    throw new Error("MSAL_REDIRECT_PATH must be /, /admin/ or /admin/auth.");
+  }
+  const v1Issuer = `https://sts.windows.net/${tenantId}/`;
+  const v2Issuer = `${authority}/v2.0`;
   const ttl = Number(process.env.MSAL_SESSION_TTL_SECONDS || 28800);
   if (!Number.isInteger(ttl) || ttl < 300 || ttl > 5184000) {
     throw new Error("MSAL_SESSION_TTL_SECONDS must be between 300 and 5184000.");
@@ -32,6 +54,7 @@ export function getMsalAuthenticationRouter(store: storage.Storage): Router {
       cliClientId,
       authority,
       scope,
+      redirectPath,
       environment: process.env.DEPLOYMENT_ENVIRONMENT || "local",
       metricsEnabled: !!process.env.REDIS_HOST && !!process.env.REDIS_PORT,
     });
@@ -48,18 +71,24 @@ export function getMsalAuthenticationRouter(store: storage.Storage): Router {
     let claims;
     try {
       const result = await jwtVerify(match[1], keys, {
-        audience,
-        issuer: `${authority}/v2.0`,
+        audience: audiences,
+        issuer: [v1Issuer, v2Issuer],
         algorithms: ["RS256"],
-        requiredClaims: ["exp", "iat", "sub", "oid", "tid", "scp", "azp"],
+        requiredClaims: ["exp", "iat", "sub", "oid", "tid", "scp", "ver"],
       });
       claims = result.payload;
+      // Existing portal scopes issue v1 tokens (appid/upn); dedicated APIs may issue v2 (azp/preferred_username).
+      const callingClient = claims.ver === "1.0" ? claims.appid : claims.ver === "2.0" ? claims.azp : undefined;
+      const expectedIssuer = claims.ver === "1.0" ? v1Issuer : claims.ver === "2.0" ? v2Issuer : undefined;
       if (
         claims.tid !== tenantId ||
         typeof claims.oid !== "string" ||
         typeof claims.scp !== "string" ||
         !claims.scp.split(" ").includes(scope.substring(scope.lastIndexOf("/") + 1)) ||
-        !allowedClients.has(String(claims.azp))
+        !expectedIssuer ||
+        claims.iss !== expectedIssuer ||
+        typeof callingClient !== "string" ||
+        !allowedClients.has(callingClient.toLowerCase())
       )
         throw new Error("Invalid delegated token claims");
     } catch {
@@ -72,9 +101,15 @@ export function getMsalAuthenticationRouter(store: storage.Storage): Router {
       return;
     }
     // Email is used only to find an account. The immutable provider ID must also match.
-    const email = claims.email || claims.preferred_username;
+    const email = [
+      claims.email,
+      claims.preferred_username,
+      claims.upn,
+      claims.unique_name,
+      claims["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/upn"],
+    ].find((value) => typeof value === "string" && value.includes("@"));
     if (typeof email !== "string" || !email.includes("@")) {
-      res.status(403).json({ message: "Your Entra account must provide an email or preferred_username claim." });
+      res.status(403).json({ message: "Your Entra account must provide an email or user principal name claim." });
       return;
     }
     try {
@@ -97,12 +132,10 @@ export function getMsalAuthenticationRouter(store: storage.Storage): Router {
       }
       // Accept the old OIDC subject for existing linked accounts; never link by email alone.
       if (account.azureAdId !== claims.oid && account.azureAdId !== claims.sub) {
-        res
-          .status(403)
-          .json({
-            message:
-              "This CodePush account is not linked to this Entra identity. Link Azure AD using the existing authentication flow first.",
-          });
+        res.status(403).json({
+          message:
+            "This CodePush account is not linked to this Entra identity. Link Azure AD using the existing authentication flow first.",
+        });
         return;
       }
       const now = Date.now();
